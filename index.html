@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ระบบติดตามการโทรกลับ — ศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน</title>
+<title>ระบบติดตามการโทรกลับ — ศูนย์ 191 ภ.จว.น่าน</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -455,7 +455,7 @@
     <div class="logo-badge">191</div>
     <div>
       <div class="logo-text">ระบบติดตามการโทรกลับ</div>
-      <div class="logo-sub">ศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน</div>
+      <div class="logo-sub">ศูนย์วิทยุ ภ.จว.น่าน</div>
     </div>
   </div>
   <nav>
@@ -476,7 +476,7 @@
     <div class="l-logo">
       <div class="l-badge">191</div>
       <div class="l-title">ระบบติดตามการโทรกลับ</div>
-      <div class="l-sub">ศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน — กรุณาเข้าสู่ระบบ</div>
+      <div class="l-sub">ศูนย์วิทยุ ภ.จว.น่าน — กรุณาเข้าสู่ระบบ</div>
     </div>
     <div class="l-card">
       <div class="l-field">
@@ -500,7 +500,7 @@
         <div class="l-spinner"></div>
       </button>
     </div>
-    <div class="l-footer">ระบบนี้สงวนสิทธิ์เฉพาะเจ้าหน้าที่ที่ได้รับอนุญาต<br><span>ศูนย์รับแจ้งเหตุฉุกเฉิน 191 ตำรวจภูธรจังหวัดน่าน</span></div>
+    <div class="l-footer">ระบบนี้สงวนสิทธิ์เฉพาะเจ้าหน้าที่ที่ได้รับอนุญาต<br><span>ศูนย์ 191 กองบังคับการตำรวจภูธรจังหวัดน่าน</span></div>
   </div>
 </div>
 <!-- ===== FORM VIEW ===== -->
@@ -508,7 +508,7 @@
   <div class="form-header">
     <div>
       <div class="page-title">บันทึก<span>การโทรกลับ</span></div>
-      <div style="font-size:13px;color:var(--text-dim);margin-top:4px">ข้อมูลการโทรกลับผู้แจ้งเหตุ ของศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน</div>
+      <div style="font-size:13px;color:var(--text-dim);margin-top:4px">ข้อมูลการโทรกลับผู้แจ้งเหตุ ของศูนย์ 191 ภ.จว.น่าน</div>
     </div>
     <div class="incident-id" id="incidentIdDisplay">เหตุ #—</div>
   </div>
@@ -543,7 +543,7 @@
       </div>
       <div class="form-row">
         <div class="form-field">
-          <label>ร้อยเวร / เจ้าหน้าที่</label>
+          <label>ผู้โทรกลับ (เจ้าหน้าที่)</label>
           <select id="f_callerName">
             <option value="">— เลือกชื่อผู้โทรกลับ —</option>
             <option>ร.ต.อ.เอกราช ปันวัง</option>
@@ -563,9 +563,7 @@
             <option>ทะเลาะวิวาท / ทำร้ายร่างกาย</option>
             <option>อุบัติเหตุจราจร</option>
             <option>เหตุฉุกเฉิน / เพลิงไหม้</option>
-            <option>เหตุขับขี่รถจยย.รบกวนเสียงดัง</option>
             <option>เหตุรบกวนความสงบ</option>
-            <option>เหตุข่มขู่ / ทวงหนี้เงินกู้</option>
             <option>แจ้งเบาะแสยาเสพติด</option>
             <option>ขอความช่วยเหลือทั่วไป</option>
             <option>อื่นๆ</option>
@@ -634,7 +632,7 @@
           <input type="radio" name="sec4" value="4.4"><div class="radio-dot"></div><span>4.4 สอบถามไม่ละเอียด</span>
         </label>
         <label class="radio-item" onclick="selectRadio('sec4','4.5')">
-          <input type="radio" name="sec4" value="4.5"><div class="radio-dot"></div><span>4.5 ใช้เวลาถาม มาก/ช้า</span>
+          <input type="radio" name="sec4" value="4.5"><div class="radio-dot"></div><span>4.5 ใช้เวลาถาม น้อย/เร็ว</span>
         </label>
       </div>
     </div>
@@ -830,7 +828,7 @@ function doLogout() {
 }
 
 // ===== CONFIG =====
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbw8V3vgKmYfoJKN4FnLReo8mokrJqublMhA5BwCAycEgbRNeddIJW8uiOwuSBMK4GHVSg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwCWx5f6Q8L785AEx0HrDzcwwYaIkVxvxRWnCB5wB53BABmATq5u7EFQ2ZuafP65hEWnQ/exec';
 
 // ===== DATA STORE =====
 let records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
