@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ระบบติดตามการโทรกลับ — ศูนย์ 191 ภ.จว.น่าน</title>
+<title>ระบบติดตามการโทรกลับ — ศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -455,7 +455,7 @@
     <div class="logo-badge">191</div>
     <div>
       <div class="logo-text">ระบบติดตามการโทรกลับ</div>
-      <div class="logo-sub">ศูนย์วิทยุ ภ.จว.น่าน</div>
+      <div class="logo-sub">ศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน</div>
     </div>
   </div>
   <nav>
@@ -476,7 +476,7 @@
     <div class="l-logo">
       <div class="l-badge">191</div>
       <div class="l-title">ระบบติดตามการโทรกลับ</div>
-      <div class="l-sub">ศูนย์วิทยุ ภ.จว.น่าน — กรุณาเข้าสู่ระบบ</div>
+      <div class="l-sub">ศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน — กรุณาเข้าสู่ระบบ</div>
     </div>
     <div class="l-card">
       <div class="l-field">
@@ -500,7 +500,7 @@
         <div class="l-spinner"></div>
       </button>
     </div>
-    <div class="l-footer">ระบบนี้สงวนสิทธิ์เฉพาะเจ้าหน้าที่ที่ได้รับอนุญาต<br><span>ศูนย์ 191 กองบังคับการตำรวจภูธรจังหวัดน่าน</span></div>
+    <div class="l-footer">ระบบนี้สงวนสิทธิ์เฉพาะเจ้าหน้าที่ที่ได้รับอนุญาต<br><span>ศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน</span></div>
   </div>
 </div>
 <!-- ===== FORM VIEW ===== -->
@@ -508,7 +508,7 @@
   <div class="form-header">
     <div>
       <div class="page-title">บันทึก<span>การโทรกลับ</span></div>
-      <div style="font-size:13px;color:var(--text-dim);margin-top:4px">ข้อมูลการโทรกลับผู้แจ้งเหตุ ของศูนย์ 191 ภ.จว.น่าน</div>
+      <div style="font-size:13px;color:var(--text-dim);margin-top:4px">ข้อมูลการโทรกลับผู้แจ้งเหตุ ของศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน</div>
     </div>
     <div class="incident-id" id="incidentIdDisplay">เหตุ #—</div>
   </div>
@@ -563,6 +563,7 @@
             <option>ทะเลาะวิวาท / ทำร้ายร่างกาย</option>
             <option>อุบัติเหตุจราจร</option>
             <option>เหตุฉุกเฉิน / เพลิงไหม้</option>
+            <option>เหตุขับขี่รถจยย.รบกวน / เสียงดัง</option>
             <option>เหตุรบกวนความสงบ</option>
             <option>แจ้งเบาะแสยาเสพติด</option>
             <option>ขอความช่วยเหลือทั่วไป</option>
@@ -600,7 +601,7 @@
 
     <!-- Section 3 -->
     <div class="form-card">
-      <div class="section-title"><span class="section-num">3</span>จนท.ศูนย์ 191 ภ.จว.น่าน ได้โทรกลับหรือยัง?</div>
+      <div class="section-title"><span class="section-num">3</span>จนท.ศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน ได้โทรกลับหรือยัง?</div>
       <div class="radio-group" id="sec3">
         <label class="radio-item" onclick="selectRadio('sec3','3.1')">
           <input type="radio" name="sec3" value="3.1">
@@ -617,7 +618,7 @@
 
     <!-- Section 4 -->
     <div class="form-card">
-      <div class="section-title"><span class="section-num">4</span>จนท.ศูนย์ 191 ภ.จว.น่าน เป็นอย่างไรบ้าง?</div>
+      <div class="section-title"><span class="section-num">4</span>จนท.ศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน เป็นอย่างไรบ้าง?</div>
       <div class="radio-group" id="sec4">
         <label class="radio-item" onclick="selectRadio('sec4','4.1')">
           <input type="radio" name="sec4" value="4.1"><div class="radio-dot"></div><span>4.1 รับสายเร็ว</span>
@@ -717,13 +718,13 @@
 
 <!-- ===== DASHBOARD VIEW ===== -->
 <div class="view" id="view-dashboard">
-  <div class="print-title">รายงานสรุปผลการโทรกลับผู้แจ้งเหตุ — ศูนย์ 191 ภ.จว.น่าน</div>
+  <div class="print-title">รายงานสรุปผลการโทรกลับผู้แจ้งเหตุ — ศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน</div>
   <div class="print-date" id="print-date"></div>
 
   <div class="dash-header">
     <div>
       <div class="dash-title">📊 แดชบอร์ดสรุปผล</div>
-      <div class="dash-sub" id="dash-period-label">ข้อมูลการโทรกลับผู้แจ้งเหตุ — ศูนย์ 191 ภ.จว.น่าน</div>
+      <div class="dash-sub" id="dash-period-label">ข้อมูลการโทรกลับผู้แจ้งเหตุ — ศูนย์รับแจ้งเหตุฉุกเฉิน 191 ภ.จว.น่าน</div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:14px">⬇️ CSV</button>
@@ -1339,6 +1340,7 @@ const ACCOUNTS = [
   { username: 'admin',    password: 'admin191',  role: 'admin' },
   { username: 'officer1', password: 'officer1',  role: 'user'  },
   { username: 'officer2', password: 'officer2',  role: 'user'  },
+  { username: 'นิกร', password: 'นิกร191',  role: 'user'  },
 ];
 
 function lCheckSession() {
