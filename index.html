@@ -228,6 +228,55 @@
     color: var(--navy); font-weight: 600;
   }
   .btn-print:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(74,214,232,0.3); }
+  .btn-danger {
+    background: rgba(255,77,109,0.1); color: var(--danger);
+    border: 1px solid rgba(255,77,109,0.3); font-weight: 600;
+  }
+  .btn-danger:hover { background: rgba(255,77,109,0.2); }
+
+  /* Delete modal */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 8888;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.show { opacity: 1; pointer-events: all; }
+  .modal-box {
+    background: var(--navy-mid); border: 1px solid var(--border);
+    border-radius: 20px; padding: 2rem; width: 100%; max-width: 560px;
+    margin: 1rem; transform: translateY(20px); transition: transform 0.2s;
+  }
+  .modal-overlay.show .modal-box { transform: translateY(0); }
+  .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+  .modal-search {
+    width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    color: var(--text); border-radius: 10px; padding: 10px 14px;
+    font-family: 'Sarabun', sans-serif; font-size: 14px; outline: none; margin-bottom: 1rem;
+    transition: border-color 0.2s;
+  }
+  .modal-search:focus { border-color: rgba(255,77,109,0.4); }
+  .modal-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .modal-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-radius: 10px;
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .modal-item:hover { background: rgba(255,255,255,0.07); }
+  .modal-item-info { flex: 1; min-width: 0; }
+  .modal-item-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .modal-item-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .modal-item-del {
+    background: rgba(255,77,109,0.1); color: var(--danger);
+    border: 1px solid rgba(255,77,109,0.3); border-radius: 8px;
+    padding: 5px 12px; cursor: pointer; font-size: 12px; font-weight: 600;
+    font-family: 'Sarabun', sans-serif; transition: all 0.15s; flex-shrink: 0; margin-left: 10px;
+  }
+  .modal-item-del:hover { background: rgba(255,77,109,0.25); }
+  .modal-empty { text-align: center; padding: 2rem; color: var(--text-dim); font-size: 14px; }
+  .modal-footer { margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .modal-count { font-size: 13px; color: var(--text-dim); }
 
   /* Print styles */
   @media print {
@@ -748,6 +797,7 @@
       <div class="dash-sub" id="dash-period-label">ข้อมูลการโทรกลับผู้แจ้งเหตุ — ศูนย์ 191 ภ.จว.น่าน</div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-danger" onclick="openDeleteModal()" style="font-size:14px">🗑️ ลบข้อมูล</button>
       <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:14px">⬇️ CSV</button>
       <button class="btn btn-print" onclick="printDashboard()" style="font-size:14px">🖨️ พิมพ์</button>
     </div>
@@ -834,6 +884,22 @@
   <div class="chart-card">
     <div class="chart-title">📋 รายการในช่วงเวลานี้</div>
     <div id="records-wrap"></div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-box">
+    <div class="modal-title">🗑️ ลบข้อมูล <span style="font-size:13px;color:var(--text-dim);font-weight:400">เลือกรายการที่ต้องการลบ</span></div>
+    <input class="modal-search" type="text" id="modalSearch" placeholder="🔍 ค้นหา ชื่อ / ลำดับเหตุ / วันที่..." oninput="renderModalList()">
+    <div class="modal-list" id="modalList"></div>
+    <div class="modal-footer">
+      <span class="modal-count" id="modalCount">—</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-danger" onclick="deleteAll()" style="font-size:13px">🗑️ ลบทั้งหมด</button>
+        <button class="btn btn-ghost" onclick="closeDeleteModal()" style="font-size:13px">ปิด</button>
+      </div>
+    </div>
   </div>
 </div>
 </main>
@@ -1374,6 +1440,75 @@ function renderTable(filtered) {
   </table>`;
 }
 
+// ===== DELETE FUNCTIONS =====
+function openDeleteModal() {
+  renderModalList();
+  document.getElementById('deleteModal').classList.add('show');
+  document.getElementById('modalSearch').value = '';
+  document.getElementById('modalSearch').focus();
+}
+
+function closeDeleteModal() {
+  document.getElementById('deleteModal').classList.remove('show');
+  renderDashboard();
+}
+
+function renderModalList() {
+  const q = document.getElementById('modalSearch').value.toLowerCase();
+  const list = document.getElementById('modalList');
+  const filtered = records.filter(r =>
+    (r.incidentNum||'').toLowerCase().includes(q) ||
+    (r.reporterName||'').toLowerCase().includes(q) ||
+    (r.callbackDate||'').includes(q) ||
+    (r.incidentType||'').toLowerCase().includes(q) ||
+    (r.callerName||'').toLowerCase().includes(q)
+  );
+  document.getElementById('modalCount').textContent = `แสดง ${filtered.length} จาก ${records.length} รายการ`;
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="modal-empty">ไม่พบข้อมูลที่ค้นหา</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(r => `
+    <div class="modal-item" id="mi_${r.id}">
+      <div class="modal-item-info">
+        <div class="modal-item-title">
+          <span style="color:var(--accent2);font-family:'IBM Plex Mono',monospace">#${r.incidentNum||'—'}</span>
+          &nbsp;${r.incidentType||'—'}
+          ${r.callerName ? `<span style="color:var(--text-dim);font-size:11px"> · ${r.callerName}</span>` : ''}
+        </div>
+        <div class="modal-item-sub">
+          📅 ${r.callbackDate||'—'}
+          ${r.reporterName ? ` &nbsp;👤 ${r.reporterName}` : ''}
+          ${r.incidentDetail ? ` &nbsp;· ${r.incidentDetail.substring(0,30)}${r.incidentDetail.length>30?'...':''}` : ''}
+        </div>
+      </div>
+      <button class="modal-item-del" onclick="deleteRecord(${r.id})">ลบ</button>
+    </div>`).join('');
+}
+
+function deleteRecord(id) {
+  if (!confirm('ยืนยันลบรายการนี้?')) return;
+  records = records.filter(r => r.id !== id);
+  localStorage.setItem('cb191_records', JSON.stringify(records));
+  const el = document.getElementById('mi_' + id);
+  if (el) { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; el.style.transition = 'all 0.2s'; setTimeout(() => el.remove(), 200); }
+  document.getElementById('modalCount').textContent = `แสดง ${records.length} จาก ${records.length} รายการ`;
+  showToast('🗑️ ลบรายการแล้ว', 'warn');
+}
+
+function deleteAll() {
+  if (!confirm(`ยืนยันลบข้อมูลทั้งหมด ${records.length} รายการ? ไม่สามารถกู้คืนได้`)) return;
+  records = [];
+  localStorage.setItem('cb191_records', JSON.stringify(records));
+  closeDeleteModal();
+  showToast('🗑️ ลบข้อมูลทั้งหมดแล้ว', 'warn');
+}
+
+// Close modal when clicking outside
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+  if (e.target === this) closeDeleteModal();
+});
+
 // Init dashboard
 setPeriod('day');
 
@@ -1382,7 +1517,7 @@ const ACCOUNTS = [
   { username: 'admin',    password: 'admin191',  role: 'admin' },
   { username: 'officer1', password: 'officer1',  role: 'user'  },
   { username: 'officer2', password: 'officer2',  role: 'user'  },
-  { username: 'นิกร',    password: 'นิกร191',  role: 'ีuser' },
+  { username: 'นิกร',    password: 'นิกร191',  role: 'user' },
 ];
 
 function lCheckSession() {
