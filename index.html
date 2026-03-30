@@ -271,12 +271,57 @@
     background: rgba(255,77,109,0.1); color: var(--danger);
     border: 1px solid rgba(255,77,109,0.3); border-radius: 8px;
     padding: 5px 12px; cursor: pointer; font-size: 12px; font-weight: 600;
-    font-family: 'Sarabun', sans-serif; transition: all 0.15s; flex-shrink: 0; margin-left: 10px;
+    font-family: 'Sarabun', sans-serif; transition: all 0.15s; flex-shrink: 0; margin-left: 6px;
   }
   .modal-item-del:hover { background: rgba(255,77,109,0.25); }
+  .modal-item-edit {
+    background: rgba(74,214,232,0.1); color: var(--accent2);
+    border: 1px solid rgba(74,214,232,0.3); border-radius: 8px;
+    padding: 5px 12px; cursor: pointer; font-size: 12px; font-weight: 600;
+    font-family: 'Sarabun', sans-serif; transition: all 0.15s; flex-shrink: 0; margin-left: 6px;
+  }
+  .modal-item-edit:hover { background: rgba(74,214,232,0.25); }
   .modal-empty { text-align: center; padding: 2rem; color: var(--text-dim); font-size: 14px; }
   .modal-footer { margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
   .modal-count { font-size: 13px; color: var(--text-dim); }
+
+  /* Edit modal */
+  .edit-modal-overlay {
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .edit-modal-overlay.show { opacity: 1; pointer-events: all; }
+  .edit-modal-box {
+    background: var(--navy-mid); border: 1px solid var(--border);
+    border-radius: 20px; padding: 2rem; width: 100%; max-width: 640px;
+    margin: 1rem; max-height: 90vh; overflow-y: auto;
+    transform: translateY(20px); transition: transform 0.2s;
+  }
+  .edit-modal-overlay.show .edit-modal-box { transform: translateY(0); }
+  .edit-modal-title { font-size: 17px; font-weight: 700; margin-bottom: 1.5rem; color: var(--accent2); }
+  .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .edit-field { display: flex; flex-direction: column; gap: 6px; }
+  .edit-field.full { grid-column: 1 / -1; }
+  .edit-field label { font-size: 12px; color: var(--text-dim); font-weight: 500; }
+  .edit-field input, .edit-field select, .edit-field textarea {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    color: var(--text); border-radius: 10px; padding: 9px 12px;
+    font-family: 'Sarabun', sans-serif; font-size: 14px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .edit-field input:focus, .edit-field select:focus, .edit-field textarea:focus {
+    border-color: rgba(74,214,232,0.4); background: rgba(74,214,232,0.03);
+  }
+  .edit-field select option { background: var(--navy-mid); }
+  .edit-field textarea { resize: vertical; min-height: 70px; }
+  .edit-section-label {
+    grid-column: 1 / -1; font-size: 12px; font-weight: 600;
+    color: var(--accent); margin-top: 8px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .edit-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 10px; }
 
   /* Print styles */
   @media print {
@@ -902,6 +947,135 @@
     </div>
   </div>
 </div>
+
+<!-- EDIT MODAL -->
+<div class="edit-modal-overlay" id="editModal">
+  <div class="edit-modal-box">
+    <div class="edit-modal-title">✏️ แก้ไขข้อมูลรายการ</div>
+    <div class="edit-grid">
+      <div class="edit-section-label">📋 ข้อมูลทั่วไป</div>
+      <div class="edit-field">
+        <label>ประจำวันที่</label>
+        <input type="date" id="e_date">
+      </div>
+      <div class="edit-field">
+        <label>วันที่โทรกลับ</label>
+        <input type="date" id="e_callbackDate">
+      </div>
+      <div class="edit-field">
+        <label>ลำดับหมายเลขเหตุ</label>
+        <input type="number" id="e_incidentNum" min="1">
+      </div>
+      <div class="edit-field">
+        <label>ผู้โทรกลับ (เจ้าหน้าที่)</label>
+        <select id="e_callerName">
+          <option value="">— เลือกชื่อผู้โทรกลับ —</option>
+          <option>ร.ต.อ.เอกราช ปันวัง</option>
+          <option>ร.ต.อ.อนุสรณ์ ผลคำ</option>
+          <option>ร.ต.อ.คนึง ศรีกันทะ</option>
+          <option>ร.ต.อ.ธีรวัฒน์ ศรีนเรศพงษ์</option>
+          <option>ร.ต.อ.อภิวัชย์ วัชรการุณย์</option>
+        </select>
+      </div>
+      <div class="edit-field">
+        <label>ชื่อผู้แจ้งเหตุ</label>
+        <input type="text" id="e_reporterName" placeholder="ชื่อ-นามสกุล">
+      </div>
+      <div class="edit-field">
+        <label>เบอร์โทรศัพท์</label>
+        <input type="tel" id="e_phone" placeholder="0XX-XXX-XXXX">
+      </div>
+      <div class="edit-field">
+        <label>ประเภทเหตุ</label>
+        <select id="e_incidentType">
+          <option value="">— เลือกประเภทเหตุ —</option>
+          <option>คดีอาญา / โจรกรรม</option>
+          <option>ทะเลาะวิวาท / ทำร้ายร่างกาย</option>
+          <option>อุบัติเหตุจราจร</option>
+          <option>เหตุฉุกเฉิน / เพลิงไหม้</option>
+          <option>เหตุรบกวนความสงบ</option>
+          <option>แจ้งเบาะแสยาเสพติด</option>
+          <option>ขอความช่วยเหลือทั่วไป</option>
+          <option>อื่นๆ</option>
+        </select>
+      </div>
+      <div class="edit-field full">
+        <label>รายละเอียดเหตุการณ์</label>
+        <input type="text" id="e_incidentDetail" placeholder="สถานที่ / รายละเอียดโดยย่อ">
+      </div>
+
+      <div class="edit-section-label">📞 ผลการโทรกลับ</div>
+      <div class="edit-field">
+        <label>2. การรับโทรศัพท์ผู้แจ้ง</label>
+        <select id="e_sec2">
+          <option value="">— เลือก —</option>
+          <option value="2.1">2.1 โทรติด/แต่ไม่รับสาย</option>
+          <option value="2.2">2.2 โทรติด/รับสายแต่ไม่สะดวก</option>
+          <option value="2.3">2.3 โทรติด/รับสาย/ร่วมมือ</option>
+        </select>
+      </div>
+      <div class="edit-field">
+        <label>3. โทรกลับหรือยัง</label>
+        <select id="e_sec3">
+          <option value="">— เลือก —</option>
+          <option value="3.1">3.1 โทรกลับแล้ว</option>
+          <option value="3.2">3.2 ไม่มีการโทรกลับ</option>
+        </select>
+      </div>
+      <div class="edit-field">
+        <label>4. จนท.ศูนย์เป็นอย่างไร</label>
+        <select id="e_sec4">
+          <option value="">— เลือก —</option>
+          <option value="4.1">4.1 รับสายเร็ว</option>
+          <option value="4.2">4.2 รับสายช้า</option>
+          <option value="4.3">4.3 สอบถามละเอียด</option>
+          <option value="4.4">4.4 สอบถามไม่ละเอียด</option>
+          <option value="4.5">4.5 ใช้เวลาน้อย/เร็ว</option>
+        </select>
+      </div>
+      <div class="edit-field">
+        <label>5. สายตรวจไปเกิดเหตุ</label>
+        <select id="e_sec5">
+          <option value="">— เลือก —</option>
+          <option value="5.1">5.1 ไปถึงเร็ว</option>
+          <option value="5.2.1">5.2 ไปช้า — ระยะใกล้</option>
+          <option value="5.2.2">5.2 ไปช้า — ระยะไกล</option>
+          <option value="5.2.3">5.2 ไปช้า — ว.13 สอบถามก่อน</option>
+          <option value="5.2.4">5.2 ไปช้า — ติดภารกิจ</option>
+          <option value="5.3.1">5.3 ไม่ไป — ติดต่อสอบถาม</option>
+          <option value="5.3.2">5.3 ไม่ไป — ไม่สอบถาม</option>
+        </select>
+      </div>
+      <div class="edit-field">
+        <label>6. เหตุเกิดซ้ำ</label>
+        <select id="e_sec6">
+          <option value="">— เลือก —</option>
+          <option value="6.1">6.1 มี</option>
+          <option value="6.2">6.2 ไม่มี</option>
+        </select>
+      </div>
+      <div class="edit-field">
+        <label>7. ความพึงพอใจ</label>
+        <select id="e_sec7">
+          <option value="">— เลือก —</option>
+          <option value="7.1">7.1 พอใจ</option>
+          <option value="7.2">7.2 ดี</option>
+          <option value="7.3">7.3 ดีมาก</option>
+          <option value="7.4">7.4 ดีเยี่ยม</option>
+          <option value="7.5">7.5 ไม่พึงพอใจ</option>
+        </select>
+      </div>
+      <div class="edit-field full">
+        <label>หมายเหตุ / ข้อเสนอแนะ</label>
+        <textarea id="e_remark" placeholder="ระบุเหตุผลหรือคำแนะนำ..."></textarea>
+      </div>
+    </div>
+    <div class="edit-footer">
+      <button class="btn btn-ghost" onclick="closeEditModal()" style="font-size:14px">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveEdit()" style="font-size:14px">💾 บันทึกการแก้ไข</button>
+    </div>
+  </div>
+</div>
 </main>
 
 <div class="toast" id="toast">✅ บันทึกข้อมูลสำเร็จ!</div>
@@ -1482,6 +1656,7 @@ function renderModalList() {
           ${r.incidentDetail ? ` &nbsp;· ${r.incidentDetail.substring(0,30)}${r.incidentDetail.length>30?'...':''}` : ''}
         </div>
       </div>
+      <button class="modal-item-edit" onclick="openEditModal(${r.id})">✏️ แก้ไข</button>
       <button class="modal-item-del" onclick="deleteRecord(${r.id})">ลบ</button>
     </div>`).join('');
 }
@@ -1504,6 +1679,73 @@ function deleteAll() {
   showToast('🗑️ ลบข้อมูลทั้งหมดแล้ว', 'warn');
 }
 
+// ===== EDIT FUNCTIONS =====
+let editingId = null;
+
+function openEditModal(id) {
+  const r = records.find(r => r.id === id);
+  if (!r) return;
+  editingId = id;
+
+  document.getElementById('e_date').value = r.date || '';
+  document.getElementById('e_callbackDate').value = r.callbackDate || '';
+  document.getElementById('e_incidentNum').value = r.incidentNum || '';
+  document.getElementById('e_callerName').value = r.callerName || '';
+  document.getElementById('e_reporterName').value = r.reporterName || '';
+  document.getElementById('e_phone').value = r.phone || '';
+  document.getElementById('e_incidentType').value = r.incidentType || '';
+  document.getElementById('e_incidentDetail').value = r.incidentDetail || '';
+  document.getElementById('e_sec2').value = r.sec2 || '';
+  document.getElementById('e_sec3').value = r.sec3 || '';
+  document.getElementById('e_sec4').value = r.sec4 || '';
+  document.getElementById('e_sec5').value = r.sec5 || '';
+  document.getElementById('e_sec6').value = r.sec6 || '';
+  document.getElementById('e_sec7').value = r.sec7 || '';
+  document.getElementById('e_remark').value = r.remark || '';
+
+  document.getElementById('editModal').classList.add('show');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('show');
+  editingId = null;
+}
+
+function saveEdit() {
+  if (!editingId) return;
+  const idx = records.findIndex(r => r.id === editingId);
+  if (idx < 0) return;
+
+  records[idx] = {
+    ...records[idx],
+    date: document.getElementById('e_date').value,
+    callbackDate: document.getElementById('e_callbackDate').value,
+    incidentNum: document.getElementById('e_incidentNum').value,
+    callerName: document.getElementById('e_callerName').value,
+    reporterName: document.getElementById('e_reporterName').value,
+    phone: document.getElementById('e_phone').value,
+    incidentType: document.getElementById('e_incidentType').value,
+    incidentDetail: document.getElementById('e_incidentDetail').value,
+    sec2: document.getElementById('e_sec2').value,
+    sec3: document.getElementById('e_sec3').value,
+    sec4: document.getElementById('e_sec4').value,
+    sec5: document.getElementById('e_sec5').value,
+    sec6: document.getElementById('e_sec6').value,
+    sec7: document.getElementById('e_sec7').value,
+    remark: document.getElementById('e_remark').value,
+  };
+
+  localStorage.setItem('cb191_records', JSON.stringify(records));
+  closeEditModal();
+  renderModalList();
+  showToast('✅ แก้ไขข้อมูลเรียบร้อย', 'success');
+}
+
+// Close edit modal when clicking outside
+document.getElementById('editModal').addEventListener('click', function(e) {
+  if (e.target === this) closeEditModal();
+});
+
 // Close modal when clicking outside
 document.getElementById('deleteModal').addEventListener('click', function(e) {
   if (e.target === this) closeDeleteModal();
@@ -1517,7 +1759,7 @@ const ACCOUNTS = [
   { username: 'admin',    password: 'admin191',  role: 'admin' },
   { username: 'officer1', password: 'officer1',  role: 'user'  },
   { username: 'officer2', password: 'officer2',  role: 'user'  },
-  { username: 'นิกร',    password: 'นิกร191',  role: 'user' },
+  { username: 'นิกร',    password: 'นิกร191',  role: 'ีuser' },
 ];
 
 function lCheckSession() {
