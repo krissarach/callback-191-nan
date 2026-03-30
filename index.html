@@ -638,23 +638,20 @@
     <div class="form-card">
       <div class="section-title"><span class="section-num">4</span>จนท.ศูนย์ 191 ภ.จว.น่าน เป็นอย่างไรบ้าง? <span style="font-size:11px;color:var(--accent2);font-weight:400;margin-left:6px;">(เลือกได้หลายข้อ)</span></div>
       <div class="radio-group" id="sec4">
-        <label class="radio-item check-item" onclick="toggleCheck(this,'sec4','4.1')">
+        <label class="radio-item check-item" data-value="4.1">
           <input type="checkbox" value="4.1"><div class="check-box"></div><span>4.1 รับสายเร็ว</span>
         </label>
-        <label class="radio-item check-item" onclick="toggleCheck(this,'sec4','4.2')">
+        <label class="radio-item check-item" data-value="4.2">
           <input type="checkbox" value="4.2"><div class="check-box"></div><span>4.2 รับสายช้า</span>
         </label>
-        <label class="radio-item check-item" onclick="toggleCheck(this,'sec4','4.3')">
+        <label class="radio-item check-item" data-value="4.3">
           <input type="checkbox" value="4.3"><div class="check-box"></div><span>4.3 สอบถามละเอียด</span>
         </label>
-        <label class="radio-item check-item" onclick="toggleCheck(this,'sec4','4.4')">
+        <label class="radio-item check-item" data-value="4.4">
           <input type="checkbox" value="4.4"><div class="check-box"></div><span>4.4 สอบถามไม่ละเอียด</span>
         </label>
-        <label class="radio-item check-item" onclick="toggleCheck(this,'sec4','4.5')">
-          <input type="checkbox" value="4.5"><div class="check-box"></div><span>4.5 ใช้เวลาถาม น้อย/เร็ว</span>
-        </label>
-        <label class="radio-item check-item" onclick="toggleCheck(this,'sec4','4.6')">
-          <input type="checkbox" value="4.5"><div class="check-box"></div><span>4.6 ใช้เวลาถาม มาก/ช้า</span>
+        <label class="radio-item check-item" data-value="4.5">
+          <input type="checkbox" value="4.5"><div class="check-box"></div><span>4.5 ใช้เวลาถาม มาก/ช้า</span>
         </label>
       </div>
     </div>
@@ -895,15 +892,25 @@ function selectRadio(section, value) {
 }
 
 // ===== CHECKBOX (multi-select) =====
-function toggleCheck(el, section, value) {
-  el.classList.toggle('selected');
+function toggleCheck(labelEl, section, value) {
+  const label = labelEl.closest('label') || labelEl;
+  const val = label.dataset.value || value;
+  label.classList.toggle('selected');
   if (!Array.isArray(formState[section])) formState[section] = [];
-  if (el.classList.contains('selected')) {
-    if (!formState[section].includes(value)) formState[section].push(value);
+  if (label.classList.contains('selected')) {
+    if (!formState[section].includes(val)) formState[section].push(val);
   } else {
-    formState[section] = formState[section].filter(v => v !== value);
+    formState[section] = formState[section].filter(v => v !== val);
   }
 }
+
+// ใช้ addEventListener แทน onclick สำหรับ sec4
+document.querySelectorAll('#sec4 .check-item').forEach(label => {
+  label.addEventListener('click', function(e) {
+    e.preventDefault();
+    toggleCheck(this, 'sec4', this.dataset.value);
+  });
+});
 
 // ===== SEND TO GAS =====
 function sendToGAS(record) {
