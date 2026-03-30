@@ -153,6 +153,24 @@
     background: var(--navy); border-radius: 50%;
   }
 
+  /* === CHECKBOX (multi-select) === */
+  .check-item input[type="checkbox"] { display: none; }
+  .check-box {
+    width: 18px; height: 18px; border-radius: 5px;
+    border: 2px solid var(--text-dim); flex-shrink: 0;
+    transition: all 0.15s; position: relative;
+  }
+  .check-item.selected { background: rgba(74,214,232,0.08); border-color: rgba(74,214,232,0.35); }
+  .check-item.selected .check-box {
+    border-color: var(--accent2); background: var(--accent2);
+    box-shadow: 0 0 8px rgba(74,214,232,0.4);
+  }
+  .check-item.selected .check-box::after {
+    content: '✓'; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--navy); font-size: 11px; font-weight: 700; line-height: 1;
+  }
+
   .sub-items { padding-left: 1rem; margin-top: 4px; }
   .sub-label { font-size: 12px; color: var(--text-dim); margin: 6px 0 4px; }
 
@@ -618,22 +636,22 @@
 
     <!-- Section 4 -->
     <div class="form-card">
-      <div class="section-title"><span class="section-num">4</span>จนท.ศูนย์ 191 ภ.จว.น่าน เป็นอย่างไรบ้าง?</div>
+      <div class="section-title"><span class="section-num">4</span>จนท.ศูนย์ 191 ภ.จว.น่าน เป็นอย่างไรบ้าง? <span style="font-size:11px;color:var(--accent2);font-weight:400;margin-left:6px;">(เลือกได้หลายข้อ)</span></div>
       <div class="radio-group" id="sec4">
-        <label class="radio-item" onclick="selectRadio('sec4','4.1')">
-          <input type="radio" name="sec4" value="4.1"><div class="radio-dot"></div><span>4.1 รับสายเร็ว</span>
+        <label class="radio-item check-item" onclick="toggleCheck(this,'sec4','4.1')">
+          <input type="checkbox" value="4.1"><div class="check-box"></div><span>4.1 รับสายเร็ว</span>
         </label>
-        <label class="radio-item" onclick="selectRadio('sec4','4.2')">
-          <input type="radio" name="sec4" value="4.2"><div class="radio-dot"></div><span>4.2 รับสายช้า</span>
+        <label class="radio-item check-item" onclick="toggleCheck(this,'sec4','4.2')">
+          <input type="checkbox" value="4.2"><div class="check-box"></div><span>4.2 รับสายช้า</span>
         </label>
-        <label class="radio-item" onclick="selectRadio('sec4','4.3')">
-          <input type="radio" name="sec4" value="4.3"><div class="radio-dot"></div><span>4.3 สอบถามละเอียด</span>
+        <label class="radio-item check-item" onclick="toggleCheck(this,'sec4','4.3')">
+          <input type="checkbox" value="4.3"><div class="check-box"></div><span>4.3 สอบถามละเอียด</span>
         </label>
-        <label class="radio-item" onclick="selectRadio('sec4','4.4')">
-          <input type="radio" name="sec4" value="4.4"><div class="radio-dot"></div><span>4.4 สอบถามไม่ละเอียด</span>
+        <label class="radio-item check-item" onclick="toggleCheck(this,'sec4','4.4')">
+          <input type="checkbox" value="4.4"><div class="check-box"></div><span>4.4 สอบถามไม่ละเอียด</span>
         </label>
-        <label class="radio-item" onclick="selectRadio('sec4','4.5')">
-          <input type="radio" name="sec4" value="4.5"><div class="radio-dot"></div><span>4.5 ใช้เวลาถาม มาก/ช้า</span>
+        <label class="radio-item check-item" onclick="toggleCheck(this,'sec4','4.5')">
+          <input type="checkbox" value="4.5"><div class="check-box"></div><span>4.5 ใช้เวลาถาม มาก/ช้า</span>
         </label>
       </div>
     </div>
@@ -873,6 +891,17 @@ function selectRadio(section, value) {
   event.currentTarget.classList.add('selected');
 }
 
+// ===== CHECKBOX (multi-select) =====
+function toggleCheck(el, section, value) {
+  el.classList.toggle('selected');
+  if (!Array.isArray(formState[section])) formState[section] = [];
+  if (el.classList.contains('selected')) {
+    if (!formState[section].includes(value)) formState[section].push(value);
+  } else {
+    formState[section] = formState[section].filter(v => v !== value);
+  }
+}
+
 // ===== SEND TO GAS =====
 function sendToGAS(record) {
   return new Promise((resolve, reject) => {
@@ -954,6 +983,7 @@ function resetForm() {
   document.getElementById('f_remark').value = '';
   document.getElementById('incidentIdDisplay').textContent = 'เหตุ #—';
   document.querySelectorAll('.radio-item').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.check-item').forEach(el => el.classList.remove('selected'));
 }
 
 function showToast(msg = '✅ บันทึกข้อมูลสำเร็จ!', type = 'success') {
@@ -972,7 +1002,9 @@ function exportCSV() {
   const rows = records.map(r => [
     r.id, r.date, r.callbackDate, r.incidentNum,
     r.reporterName, r.phone, r.incidentType, r.incidentDetail,
-    r.callerName, r.sec2, r.sec3, r.sec4, r.sec5, r.sec6, r.sec7, r.remark
+    r.callerName, r.sec2, r.sec3,
+    Array.isArray(r.sec4) ? r.sec4.join('|') : (r.sec4||''),
+    r.sec5, r.sec6, r.sec7, r.remark
   ].map(v => `"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
   const csv = '﻿' + [headers.join(','), ...rows].join('\n');
   const a = document.createElement('a');
@@ -1185,13 +1217,16 @@ function renderDashboard() {
     { label: 'โทรติด/รับสาย/ร่วมมือ', val: count(filtered,'sec2','2.3'), color: '#43d982' },
   ]);
 
-  // Sec 4
+  // Sec 4 — multi-select: sec4 is now an array
+  function countSec4(arr, val) {
+    return arr.filter(r => Array.isArray(r.sec4) ? r.sec4.includes(val) : r.sec4 === val).length;
+  }
   renderBarChart('chart-sec4', [
-    { label: 'รับสายเร็ว', val: count(filtered,'sec4','4.1'), color: '#43d982' },
-    { label: 'รับสายช้า', val: count(filtered,'sec4','4.2'), color: '#ff4d6d' },
-    { label: 'สอบถามละเอียด', val: count(filtered,'sec4','4.3'), color: '#4ad6e8' },
-    { label: 'สอบถามไม่ละเอียด', val: count(filtered,'sec4','4.4'), color: '#ffb347' },
-    { label: 'ใช้เวลาน้อย/เร็ว', val: count(filtered,'sec4','4.5'), color: '#a78bfa' },
+    { label: 'รับสายเร็ว', val: countSec4(filtered,'4.1'), color: '#43d982' },
+    { label: 'รับสายช้า', val: countSec4(filtered,'4.2'), color: '#ff4d6d' },
+    { label: 'สอบถามละเอียด', val: countSec4(filtered,'4.3'), color: '#4ad6e8' },
+    { label: 'สอบถามไม่ละเอียด', val: countSec4(filtered,'4.4'), color: '#ffb347' },
+    { label: 'ใช้เวลาถาม มาก/ช้า', val: countSec4(filtered,'4.5'), color: '#a78bfa' },
   ]);
 
   // Sec 5
