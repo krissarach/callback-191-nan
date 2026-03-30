@@ -653,9 +653,6 @@
         <label class="radio-item check-item" data-value="4.5">
           <input type="checkbox" value="4.5"><div class="check-box"></div><span>4.5 ใช้เวลาถาม มาก/ช้า</span>
         </label>
-        <label class="radio-item check-item" data-value="4.6">
-          <input type="checkbox" value="4.6"><div class="check-box"></div><span>4.6 ใช้เวลาถาม มาก/ช้า</span>
-        </label>
       </div>
     </div>
 
@@ -916,33 +913,25 @@ document.querySelectorAll('#sec4 .check-item').forEach(label => {
 });
 
 // ===== SEND TO GAS =====
-async function sendToGAS(record) {
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbx5vWIOCC0onQ9uWQVdLMrNpgG2TVMTjnRN3IMuBK3ZT8FpQruf05-1t-za8sJTc3KpsQ/exec';
+// ค้นหาบรรทัดนี้ในไฟล์ของคุณแล้วแก้ไข
+function sendToGAS(record) {
+  // นำ URL ที่ได้จากขั้นตอนที่ 2 มาใส่ที่นี่
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxJMLecDex-aQdoZSXeFPKpa9eewZiZdIaDrxfhAYPL1F7XirJQilpHw0MNlSnrkzTqRA/exec'; 
 
-  try {
-    const response = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',   // สำคัญ! ช่วย bypass preflight บางส่วน
-      },
-      body: JSON.stringify(record),
-      redirect: 'follow'   // สำคัญสำหรับ GAS Web App
-    });
+  if (!GAS_URL) return; // หากยังไม่ใส่ URL จะไม่ทำงาน
+  
+  const callbackName = 'jsonp_cb_' + Date.now();
+  window[callbackName] = (resp) => {
+    console.log('GAS Response:', resp);
+    delete window[callbackName];
+    const scriptTag = document.getElementById(callbackName);
+    if (scriptTag) scriptTag.remove();
+  };
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    if (result.status === 'ok' || result.success) {
-      return result;
-    } else {
-      throw new Error(result.message || 'Unknown error from GAS');
-    }
-  } catch (err) {
-    console.error('ส่งข้อมูลไป GAS ล้มเหลว:', err);
-    throw err;
-  }
+  const script = document.createElement('script');
+  script.id = callbackName;
+  script.src = `${GAS_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(record))}`;
+  document.body.appendChild(script);
 }
 
 // ===== FORM SUBMIT =====
@@ -951,18 +940,35 @@ async function submitForm() {
   btn.disabled = true;
   btn.textContent = '⏳ กำลังบันทึก...';
 
-  const record = { ... }; // โค้ดสร้าง record เดิมของคุณ (ไม่ต้องเปลี่ยน)
+  const record = {
+    id: Date.now(),
+    date: document.getElementById('f_date').value,
+    callbackDate: document.getElementById('f_callbackDate').value,
+    incidentNum: document.getElementById('f_incidentNum').value,
+    reporterName: document.getElementById('f_reporterName').value,
+    phone: document.getElementById('f_phone').value,
+    incidentType: document.getElementById('f_incidentType').value,
+    incidentDetail: document.getElementById('f_incidentDetail').value,
+    callerName: document.getElementById('f_callerName').value,
+    sec2: formState['sec2'] || null,
+    sec3: formState['sec3'] || null,
+    sec4: formState['sec4'] || null,
+    sec5: formState['sec5'] || null,
+    sec6: formState['sec6'] || null,
+    sec7: formState['sec7'] || null,
+    remark: document.getElementById('f_remark').value,
+  };
 
-  // Save locally ก่อน
+  // Save locally
   records.unshift(record);
   localStorage.setItem('cb191_records', JSON.stringify(records));
 
+  // Send to Google Sheets via hidden form (bypasses CORS)
   try {
     await sendToGAS(record);
     showToast('✅ บันทึกลง Google Sheet สำเร็จ!', 'success');
   } catch (err) {
-    console.warn('บันทึกไป Sheet ล้มเหลว → เก็บเฉพาะเครื่อง:', err);
-    showToast('⚠️ บันทึกเฉพาะในเครื่อง (Sheet อาจมีปัญหา)', 'warn');
+    showToast('⚠️ บันทึกเฉพาะในเครื่อง (ไม่สามารถเชื่อมต่อ Sheet)', 'warn');
   }
 
   btn.disabled = false;
