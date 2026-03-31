@@ -1125,7 +1125,7 @@ function doLogout() {
 }
 
 // ===== CONFIG =====
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxyX_pTFQugswebDkVS6frL9xHnEnU1Ijtd2XjCHQxxVWQy7h7EciveR6dbhJi0ELHI/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyjAjRF527a4oTPceQwsVON8p-U9g5VHGwF2mAVoz19CaCLz3g-ts0vNiN1XddyvfYW4Q/exec';
 
 // ===== DATA STORE =====
 let records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
@@ -1203,31 +1203,42 @@ function comboChange(selectId, inputId) {
   }
 }
 
+// ===== LOAD FROM GAS =====
+async function loadFromGAS() {
+  try {
+    const url = GAS_URL + '?action=getAll&t=' + Date.now();
+    const response = await fetch(url, { method: 'GET', mode: 'no-cors' });
+    // no-cors ไม่สามารถอ่าน response ได้ — fallback to localStorage
+    throw new Error('use localStorage');
+  } catch (err) {
+    records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
+    console.log('📦 โหลดจาก localStorage:', records.length, 'รายการ');
+  }
+}
+
 // ===== SEND TO GAS =====
 // ค้นหาบรรทัดนี้ในไฟล์ของคุณแล้วแก้ไข
-function sendToGAS(record) {
-  // นำ URL ที่ได้จากขั้นตอนที่ 2 มาใส่ที่นี่
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxyX_pTFQugswebDkVS6frL9xHnEnU1Ijtd2XjCHQxxVWQy7h7EciveR6dbhJi0ELHI/exec'; 
-
-  if (!GAS_URL) return; // หากยังไม่ใส่ URL จะไม่ทำงาน
-  
-  const callbackName = 'jsonp_cb_' + Date.now();
-  window[callbackName] = (resp) => {
-    console.log('GAS Response:', resp);
-    delete window[callbackName];
-    const scriptTag = document.getElementById(callbackName);
-    if (scriptTag) scriptTag.remove();
-  };
-
-  const script = document.createElement('script');
-  script.id = callbackName;
-  script.src = `${GAS_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(record))}`;
-  document.body.appendChild(script);
+async function sendToGAS(record) {
+  const url = GAS_URL;
+  if (!url) { console.warn('ยังไม่ได้ตั้ง GAS_URL'); return; }
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(record)
+    });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    console.log('✅ ส่งข้อมูลไป Google Sheets สำเร็จ');
+  } catch (err) {
+    console.warn('⚠️ ส่งไป Sheets ไม่สำเร็จ:', err);
+    throw err;
+  }
 }
 
 // ===== FORM SUBMIT =====
 async function submitForm() {
   const btn = document.querySelector('.btn-primary');
+  const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳ กำลังบันทึก...';
 
@@ -1240,7 +1251,8 @@ async function submitForm() {
     phone: document.getElementById('f_phone').value,
     incidentType: (function(){
       const sel = document.getElementById('f_incidentType').value;
-      const other = document.getElementById('f_incidentTypeOther').value.trim();
+      const otherEl = document.getElementById('f_incidentTypeOther');
+      const other = otherEl ? otherEl.value.trim() : '';
       return sel === 'อื่นๆ' && other ? other : sel;
     })(),
     incidentDetail: document.getElementById('f_incidentDetail').value,
@@ -1254,20 +1266,20 @@ async function submitForm() {
     remark: document.getElementById('f_remark').value,
   };
 
-  // Save locally
+  // บันทึก local ก่อนเสมอ
   records.unshift(record);
   localStorage.setItem('cb191_records', JSON.stringify(records));
 
-  // Send to Google Sheets via hidden form (bypasses CORS)
   try {
     await sendToGAS(record);
-    showToast('✅ บันทึกลง Google Sheet สำเร็จ!', 'success');
+    showToast('✅ บันทึกลง Google Sheet + เครื่องสำเร็จ!', 'success');
   } catch (err) {
-    showToast('⚠️ บันทึกเฉพาะในเครื่อง (ไม่สามารถเชื่อมต่อ Sheet)', 'warn');
+    console.error(err);
+    showToast('⚠️ บันทึกในเครื่องสำเร็จ แต่ส่งไป Sheet ไม่ได้ (อาจชั่วคราว)', 'warn');
   }
 
   btn.disabled = false;
-  btn.textContent = '💾 บันทึกข้อมูล';
+  btn.textContent = originalText;
   resetForm();
 }
 
@@ -1820,8 +1832,13 @@ document.getElementById('deleteModal').addEventListener('click', function(e) {
   if (e.target === this) closeDeleteModal();
 });
 
-// Init dashboard
-setPeriod('day');
+// ===== INIT APP =====
+async function initApp() {
+  await loadFromGAS();
+  setPeriod('day');
+  lCheckSession();
+}
+window.addEventListener('DOMContentLoaded', initApp);
 
 // ===== LOGIN SYSTEM =====
 const ACCOUNTS = [
