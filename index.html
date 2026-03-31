@@ -204,6 +204,23 @@
   .form-field textarea { resize: vertical; min-height: 80px; }
 
   .submit-row { display: flex; justify-content: flex-end; gap: 12px; margin-top: 1.5rem; }
+
+  /* Combo select+input */
+  .combo-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .combo-wrap select, .combo-wrap input {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    color: var(--text); border-radius: 10px; padding: 10px 14px;
+    font-family: 'Sarabun', sans-serif; font-size: 14px; outline: none;
+    transition: border-color 0.2s; width: 100%;
+  }
+  .combo-wrap select:focus, .combo-wrap input:focus {
+    border-color: rgba(232,177,74,0.4); background: rgba(232,177,74,0.04);
+  }
+  .combo-wrap select option { background: var(--navy-mid); }
+  .combo-other {
+    display: none; margin-top: 0;
+  }
+  .combo-other.show { display: block; }
   .btn {
     padding: 12px 28px; border-radius: 10px; border: none; cursor: pointer;
     font-family: 'Sarabun', sans-serif; font-size: 15px; font-weight: 600;
@@ -1000,17 +1017,20 @@
       </div>
       <div class="edit-field">
         <label>ประเภทเหตุ</label>
-        <select id="e_incidentType">
-          <option value="">— เลือกประเภทเหตุ —</option>
-          <option>คดีอาญา / โจรกรรม</option>
-          <option>ทะเลาะวิวาท / ทำร้ายร่างกาย</option>
-          <option>อุบัติเหตุจราจร</option>
-          <option>เหตุฉุกเฉิน / เพลิงไหม้</option>
-          <option>เหตุรบกวนความสงบ</option>
-          <option>แจ้งเบาะแสยาเสพติด</option>
-          <option>ขอความช่วยเหลือทั่วไป</option>
-          <option>อื่นๆ</option>
-        </select>
+        <div class="combo-wrap">
+          <select id="e_incidentType" onchange="comboChange('e_incidentType','e_incidentTypeOther')">
+            <option value="">— เลือกประเภทเหตุ —</option>
+            <option>คดีอาญา / โจรกรรม</option>
+            <option>ทะเลาะวิวาท / ทำร้ายร่างกาย</option>
+            <option>อุบัติเหตุจราจร</option>
+            <option>เหตุฉุกเฉิน / เพลิงไหม้</option>
+            <option>เหตุรบกวนความสงบ</option>
+            <option>แจ้งเบาะแสยาเสพติด</option>
+            <option>ขอความช่วยเหลือทั่วไป</option>
+            <option value="อื่นๆ">อื่นๆ (ระบุเอง)</option>
+          </select>
+          <input type="text" id="e_incidentTypeOther" class="combo-other" placeholder="ระบุประเภทเหตุ...">
+        </div>
       </div>
       <div class="edit-field full">
         <label>รายละเอียดเหตุการณ์</label>
@@ -1168,6 +1188,19 @@ document.querySelectorAll('#sec4 .check-item').forEach(label => {
   });
 });
 
+// ===== COMBO SELECT HELPER =====
+function comboChange(selectId, inputId) {
+  const sel = document.getElementById(selectId);
+  const inp = document.getElementById(inputId);
+  if (sel.value === 'อื่นๆ') {
+    inp.classList.add('show');
+    inp.focus();
+  } else {
+    inp.classList.remove('show');
+    inp.value = '';
+  }
+}
+
 // ===== SEND TO GAS =====
 // ค้นหาบรรทัดนี้ในไฟล์ของคุณแล้วแก้ไข
 function sendToGAS(record) {
@@ -1203,7 +1236,11 @@ async function submitForm() {
     incidentNum: document.getElementById('f_incidentNum').value,
     reporterName: document.getElementById('f_reporterName').value,
     phone: document.getElementById('f_phone').value,
-    incidentType: document.getElementById('f_incidentType').value,
+    incidentType: (function(){
+      const sel = document.getElementById('f_incidentType').value;
+      const other = document.getElementById('f_incidentTypeOther').value.trim();
+      return sel === 'อื่นๆ' && other ? other : sel;
+    })(),
     incidentDetail: document.getElementById('f_incidentDetail').value,
     callerName: document.getElementById('f_callerName').value,
     sec2: formState['sec2'] || null,
@@ -1238,6 +1275,8 @@ function resetForm() {
   document.getElementById('f_reporterName').value = '';
   document.getElementById('f_phone').value = '';
   document.getElementById('f_incidentType').value = '';
+  document.getElementById('f_incidentTypeOther').value = '';
+  document.getElementById('f_incidentTypeOther').classList.remove('show');
   document.getElementById('f_incidentDetail').value = '';
   document.getElementById('f_callerName').value = '';
   document.getElementById('f_remark').value = '';
@@ -1706,7 +1745,18 @@ function openEditModal(id) {
   document.getElementById('e_callerName').value = r.callerName || '';
   document.getElementById('e_reporterName').value = r.reporterName || '';
   document.getElementById('e_phone').value = r.phone || '';
-  document.getElementById('e_incidentType').value = r.incidentType || '';
+  // Handle incidentType — check if value matches an option
+  const incidentOptions = ['คดีอาญา / โจรกรรม','ทะเลาะวิวาท / ทำร้ายร่างกาย','อุบัติเหตุจราจร','เหตุฉุกเฉิน / เพลิงไหม้','เหตุรบกวนความสงบ','แจ้งเบาะแสยาเสพติด','ขอความช่วยเหลือทั่วไป',''];
+  const incidentVal = r.incidentType || '';
+  if (incidentOptions.includes(incidentVal)) {
+    document.getElementById('e_incidentType').value = incidentVal;
+    document.getElementById('e_incidentTypeOther').classList.remove('show');
+    document.getElementById('e_incidentTypeOther').value = '';
+  } else {
+    document.getElementById('e_incidentType').value = 'อื่นๆ';
+    document.getElementById('e_incidentTypeOther').classList.add('show');
+    document.getElementById('e_incidentTypeOther').value = incidentVal;
+  }
   document.getElementById('e_incidentDetail').value = r.incidentDetail || '';
   document.getElementById('e_sec2').value = r.sec2 || '';
   document.getElementById('e_sec3').value = r.sec3 || '';
@@ -1737,7 +1787,11 @@ function saveEdit() {
     callerName: document.getElementById('e_callerName').value,
     reporterName: document.getElementById('e_reporterName').value,
     phone: document.getElementById('e_phone').value,
-    incidentType: document.getElementById('e_incidentType').value,
+    incidentType: (function(){
+      const sel = document.getElementById('e_incidentType').value;
+      const other = document.getElementById('e_incidentTypeOther').value.trim();
+      return sel === 'อื่นๆ' && other ? other : sel;
+    })(),
     incidentDetail: document.getElementById('e_incidentDetail').value,
     sec2: document.getElementById('e_sec2').value,
     sec3: document.getElementById('e_sec3').value,
