@@ -1125,7 +1125,7 @@ function doLogout() {
 }
 
 // ===== CONFIG =====
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzUftFMtatynQM1kNPKNJL2mIrA-aEpvlzGj3KwDf6ExL0Sc7iNmjgdDeCJBlX-A1ddkQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw3mLk5PhlKRrhWVPjmIod3IRoS5l7WXVyBjB2aPJHrh-jyLLIsAcyYXC6l98lcAS-lAg/exec';
 
 // ===== DATA STORE =====
 let records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
@@ -1205,53 +1205,66 @@ function comboChange(selectId, inputId) {
   }
 }
 
-// ===== LOAD FROM GAS =====
-// ===== LOAD FROM GAS =====
+// ===== LOAD FROM GAS (JSONP — bypass CORS) =====
 async function loadFromGAS() {
-  try {
-    console.log('กำลังโหลดข้อมูลจาก Google Sheets...');
-    const url = GAS_URL + '?action=getAll&t=' + Date.now();
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Content-Type': 'text/plain' }
-    });
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    const text = await response.text();
-    let result;
-    try { result = JSON.parse(text); }
-    catch (e) { throw new Error('Invalid JSON: ' + text.substring(0,100)); }
+  return new Promise((resolve) => {
+    const cbName = 'gasLoad_' + Date.now();
+    const timeoutId = setTimeout(() => {
+      delete window[cbName];
+      const s = document.getElementById(cbName);
+      if (s) s.remove();
+      console.warn('⚠️ โหลดจาก Sheets timeout — ใช้ข้อมูลในเครื่องแทน');
+      records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
+      console.log('📦 localStorage:', records.length, 'รายการ');
+      resolve(false);
+    }, 10000);
 
-    if (result.success && Array.isArray(result.records)) {
-      records = result.records.map(r => ({
-        id: Number(r.id) || Date.now(),
-        date: r.date || '',
-        callbackDate: r.callbackDate || '',
-        incidentNum: r.incidentNum || '',
-        reporterName: r.reporterName || '',
-        phone: r.phone || '',
-        incidentType: r.incidentType || '',
-        incidentDetail: r.incidentDetail || '',
-        callerName: r.callerName || '',
-        sec2: r.sec2 || null,
-        sec3: r.sec3 || null,
-        sec4: r.sec4 ? (typeof r.sec4 === 'string' ? r.sec4.split(/[,|]/).map(s => s.trim()) : r.sec4) : null,
-        sec5: r.sec5 || null,
-        sec6: r.sec6 || null,
-        sec7: r.sec7 || null,
-        remark: r.remark || ''
-      }));
-      localStorage.setItem('cb191_records', JSON.stringify(records));
-      console.log('✅ โหลดสำเร็จจาก Google Sheets: ' + records.length + ' รายการ');
-      return true;
-    } else {
-      throw new Error('GAS ตอบกลับ: ' + JSON.stringify(result).substring(0,100));
-    }
-  } catch (err) {
-    console.warn('⚠️ ไม่สามารถโหลดจาก Sheets ได้:', err.message);
-    records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
-    console.log('📦 ใช้ข้อมูลในเครื่อง: ' + records.length + ' รายการ');
-    return false;
-  }
+    window[cbName] = function(result) {
+      clearTimeout(timeoutId);
+      delete window[cbName];
+      const s = document.getElementById(cbName);
+      if (s) s.remove();
+      if (result && result.success && Array.isArray(result.records)) {
+        records = result.records.map(r => ({
+          id: String(r.id || ''),
+          date: String(r.date || ''),
+          callbackDate: String(r.callbackDate || ''),
+          incidentNum: String(r.incidentNum || ''),
+          reporterName: String(r.reporterName || ''),
+          phone: String(r.phone || ''),
+          incidentType: String(r.incidentType || ''),
+          incidentDetail: String(r.incidentDetail || ''),
+          callerName: String(r.callerName || ''),
+          sec2: r.sec2 || null,
+          sec3: r.sec3 || null,
+          sec4: r.sec4 || null,
+          sec5: r.sec5 || null,
+          sec6: r.sec6 || null,
+          sec7: r.sec7 || null,
+          remark: String(r.remark || '')
+        }));
+        localStorage.setItem('cb191_records', JSON.stringify(records));
+        console.log('✅ โหลดสำเร็จจาก Google Sheets:', records.length, 'รายการ');
+        resolve(true);
+      } else {
+        console.warn('⚠️ GAS ตอบกลับผิดพลาด — ใช้ข้อมูลในเครื่องแทน');
+        records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
+        resolve(false);
+      }
+    };
+
+    const script = document.createElement('script');
+    script.id = cbName;
+    script.src = GAS_URL + '?action=getAll&callback=' + cbName + '&t=' + Date.now();
+    script.onerror = () => {
+      clearTimeout(timeoutId);
+      delete window[cbName];
+      console.warn('⚠️ โหลดสคริปต์ล้มเหลว — ใช้ข้อมูลในเครื่องแทน');
+      records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
 }
 
 
