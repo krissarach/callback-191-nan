@@ -1125,7 +1125,7 @@ function doLogout() {
 }
 
 // ===== CONFIG =====
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxJMLecDex-aQdoZSXeFPKpa9eewZiZdIaDrxfhAYPL1F7XirJQilpHw0MNlSnrkzTqRA/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxlo5h_bgHFQBNl9vt4CWFofhhwxgxHcdMQ01yFn5duz8-akM3VbUd6NYkZiExF8JaCJg/exec';
 
 // ===== DATA STORE =====
 let records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
@@ -1207,7 +1207,7 @@ function comboChange(selectId, inputId) {
 // ค้นหาบรรทัดนี้ในไฟล์ของคุณแล้วแก้ไข
 function sendToGAS(record) {
   // นำ URL ที่ได้จากขั้นตอนที่ 2 มาใส่ที่นี่
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxJMLecDex-aQdoZSXeFPKpa9eewZiZdIaDrxfhAYPL1F7XirJQilpHw0MNlSnrkzTqRA/exec'; 
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxlo5h_bgHFQBNl9vt4CWFofhhwxgxHcdMQ01yFn5duz8-akM3VbUd6NYkZiExF8JaCJg/exec'; 
 
   if (!GAS_URL) return; // หากยังไม่ใส่ URL จะไม่ทำงาน
   
