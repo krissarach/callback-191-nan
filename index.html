@@ -1125,7 +1125,7 @@ function doLogout() {
 }
 
 // ===== CONFIG =====
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbw3mLk5PhlKRrhWVPjmIod3IRoS5l7WXVyBjB2aPJHrh-jyLLIsAcyYXC6l98lcAS-lAg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwJ8EjEo9SyW_vXjOXzc0iHYKiCrgfJAIGKJsba5VcU9OvJ7U8xIU9SCJlbKclFYRCg7Q/exec';
 
 // ===== DATA STORE =====
 let records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
@@ -1224,9 +1224,17 @@ async function loadFromGAS() {
       delete window[cbName];
       const s = document.getElementById(cbName);
       if (s) s.remove();
+
       if (result && result.success && Array.isArray(result.records)) {
-        records = result.records.map(r => ({
-          id: String(r.id || ''),
+        // กรองแถวว่างออก — ต้องมี id หรือ callbackDate อย่างน้อย 1 อย่าง
+        const raw = result.records.filter(r =>
+          String(r.id || '').trim() !== '' ||
+          String(r.callbackDate || '').trim() !== '' ||
+          String(r.incidentNum || '').trim() !== ''
+        );
+
+        records = raw.map(r => ({
+          id: String(r.id || Date.now()),
           date: String(r.date || ''),
           callbackDate: String(r.callbackDate || ''),
           incidentNum: String(r.incidentNum || ''),
@@ -1243,8 +1251,9 @@ async function loadFromGAS() {
           sec7: r.sec7 || null,
           remark: String(r.remark || '')
         }));
+
         localStorage.setItem('cb191_records', JSON.stringify(records));
-        console.log('✅ โหลดสำเร็จจาก Google Sheets:', records.length, 'รายการ');
+        console.log('✅ โหลดสำเร็จจาก Google Sheets:', records.length, 'รายการ (กรองแล้ว)');
         resolve(true);
       } else {
         console.warn('⚠️ GAS ตอบกลับผิดพลาด — ใช้ข้อมูลในเครื่องแทน');
