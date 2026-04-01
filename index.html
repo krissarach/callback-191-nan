@@ -1179,11 +1179,11 @@
   </div>
 
   <!-- Upload zone -->
-  <div class="upload-zone" id="scanUploadZone" onclick="if(event.target.tagName!=='INPUT'){document.getElementById('scanFileInput').click()}">
+  <div class="upload-zone" id="scanUploadZone" onclick="scanTriggerUpload()">
     <div class="upload-icon">📋</div>
     <div class="upload-title">คลิกหรือลากภาพแบบฟอร์มมาวางที่นี่</div>
     <div class="upload-sub">รองรับ JPG, PNG — ขนาดสูงสุด 10MB</div>
-    <input type="file" id="scanFileInput" accept="image/*" style="display:none" onchange="scanHandleFile(this.files[0])" onclick="event.stopPropagation()">
+    <input type="file" id="scanFileInput" accept="image/*" style="display:none" onchange="scanHandleFile(this.files[0])">
   </div>
 
   <!-- Preview -->
@@ -1988,7 +1988,6 @@ let scanFile = null;
 let scanRecords = [];
 let scanRecordIdx = 0;
 
-// Drag & drop — init lazily when scan view is opened
 function scanInitDragDrop() {
   const zone = document.getElementById('scanUploadZone');
   if (!zone || zone._ddInit) return;
@@ -1996,27 +1995,42 @@ function scanInitDragDrop() {
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
   zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.classList.remove('drag');
-    if (e.dataTransfer.files[0]) scanHandleFile(e.dataTransfer.files[0]);
+    e.preventDefault();
+    zone.classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f) scanHandleFile(f);
   });
 }
 
 function scanTriggerUpload() {
-  document.getElementById('scanFileInput').click();
+  const inp = document.getElementById('scanFileInput');
+  if (inp) inp.click();
 }
 
 function scanHandleFile(file) {
   if (!file) return;
-  if (!file.type.startsWith('image/')) { showToast('กรุณาเลือกไฟล์รูปภาพ', 'warn'); return; }
-  if (file.size > 10 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 10MB', 'warn'); return; }
+  if (!file.type.startsWith('image/')) {
+    showToast('กรุณาเลือกไฟล์รูปภาพเท่านั้น', 'warn'); return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('ไฟล์ใหญ่เกิน 10MB', 'warn'); return;
+  }
   scanFile = file;
   const url = URL.createObjectURL(file);
-  document.getElementById('scanPreviewImg').src = url;
-  document.getElementById('scanPreviewName').textContent = file.name;
-  document.getElementById('scanPreviewSize').textContent = (file.size/1024).toFixed(0) + ' KB';
-  document.getElementById('scanUploadZone').style.display = 'none';
-  document.getElementById('scanPreviewWrap').style.display = 'flex';
-  document.getElementById('scanBtnAnalyze').style.display = 'block';
+
+  const img = document.getElementById('scanPreviewImg');
+  const name = document.getElementById('scanPreviewName');
+  const size = document.getElementById('scanPreviewSize');
+  const zone = document.getElementById('scanUploadZone');
+  const prev = document.getElementById('scanPreviewWrap');
+  const btn  = document.getElementById('scanBtnAnalyze');
+
+  if (img) img.src = url;
+  if (name) name.textContent = file.name;
+  if (size) size.textContent = (file.size / 1024).toFixed(0) + ' KB';
+  if (zone) zone.style.display = 'none';
+  if (prev) prev.style.display = 'flex';
+  if (btn)  btn.style.display  = 'block';
   scanSetStep(1);
 }
 
@@ -2024,40 +2038,37 @@ function scanSetStep(n) {
   for (let i = 1; i <= 4; i++) {
     const el = document.getElementById('sstep' + i);
     const nm = document.getElementById('sn' + i);
-    if (!el) continue;
+    if (!el || !nm) continue;
     el.className = 'scan-step' + (i < n ? ' done' : i === n ? ' active' : '');
-    nm.textContent = i < n ? '✓' : i;
+    nm.textContent = i < n ? '✓' : String(i);
   }
-  scanInitDragDrop();
-}
-
-function scanUpdateProg(num, icon, text, spinning = false) {
-  const el = document.getElementById('sprog' + num);
-  if (!el) return;
-  el.style.opacity = '1';
-  el.innerHTML = `<span style="font-size:18px;width:24px">${spinning ? '<span class="spinning">⟳</span>' : icon}</span><span>${text}</span>`;
 }
 
 async function scanAnalyze() {
-  if (!scanFile) return;
+  if (!scanFile) { showToast('กรุณาเลือกภาพก่อน', 'warn'); return; }
   const btn = document.getElementById('scanBtnAnalyze');
-  btn.disabled = true; btn.textContent = '⏳ กำลังวิเคราะห์...';
-  document.getElementById('scanProgCard').style.display = 'block';
-  document.getElementById('scanResultCard').style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ กำลังวิเคราะห์...'; }
+
+  const progCard = document.getElementById('scanProgCard');
+  const resCard  = document.getElementById('scanResultCard');
+  if (progCard) progCard.style.display = 'block';
+  if (resCard)  resCard.style.display  = 'none';
   scanSetStep(2);
 
   try {
+    // Convert to base64
     const base64 = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result.split(',')[1]);
-      r.onerror = rej;
-      r.readAsDataURL(scanFile);
+      const reader = new FileReader();
+      reader.onload  = () => res(reader.result.split(',')[1]);
+      reader.onerror = rej;
+      reader.readAsDataURL(scanFile);
     });
     const mediaType = scanFile.type || 'image/jpeg';
-    scanUpdateProg(1, '✅', 'ส่งภาพไปยัง AI แล้ว');
-    scanUpdateProg(2, '🔄', 'AI กำลังอ่านข้อมูลในแบบฟอร์ม...', true);
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    scanUpdateProg(1, '✅', 'ส่งภาพไปยัง AI แล้ว');
+    scanUpdateProg(2, '⟳', 'AI กำลังอ่านข้อมูลในแบบฟอร์ม...', true);
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -2067,34 +2078,46 @@ async function scanAnalyze() {
           role: 'user',
           content: [
             { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-            { type: 'text', text: `วิเคราะห์แบบฟอร์มการโทรกลับผู้แจ้งเหตุของศูนย์ 191 ภ.จว.น่าน
+            { type: 'text', text: `วิเคราะห์แบบฟอร์มการโทรกลับผู้แจ้งเหตุ ศูนย์ 191 ภ.จว.น่าน
 
-แบบฟอร์มมีคอลัมน์ 1-15 สำหรับแต่ละเหตุการณ์ และมีข้อ 2-7 ให้ทำเครื่องหมาย
+แบบฟอร์มมีคอลัมน์ 1-15 (แต่ละคอลัมน์ = 1 เหตุการณ์) และข้อ 2-7
+อ่านเครื่องหมายถูก (✓) หรือ X ในแต่ละช่อง แล้วแปลงเป็น JSON
 
-กรุณาอ่านแบบฟอร์มในภาพและแปลงเป็น JSON โดย:
-- แต่ละ object = 1 คอลัมน์ที่มีข้อมูล (มีเครื่องหมายถูกหรือกากบาท)
-- ข้ามคอลัมน์ที่ไม่มีข้อมูล
-- วันที่อ่านจาก "ประจำวันที่" แปลงเป็น YYYY-MM-DD (ปีพ.ศ. ลบ 543)
+วันที่ดูจาก "ประจำวันที่" ในหัวแบบฟอร์ม แปลงเป็น YYYY-MM-DD (ปี พ.ศ. ลบ 543)
 
-JSON format:
-{"date":"YYYY-MM-DD","records":[{"incidentNum":"1-15","sec2":"2.1/2.2/2.3","sec3":"3.1/3.2","sec4":"4.1,4.3 (หลายข้อคั่นจุลภาค)","sec5":"5.1/5.2.1/5.2.2/5.2.3/5.2.4/5.3.1/5.3.2","sec6":"6.1/6.2","sec7":"7.1/7.2/7.3/7.4/7.5"}]}
+JSON format (ตอบเฉพาะ JSON ไม่ต้องมีข้อความอื่น):
+{
+  "date": "YYYY-MM-DD",
+  "records": [
+    {
+      "incidentNum": "1",
+      "sec2": "2.1 หรือ 2.2 หรือ 2.3",
+      "sec3": "3.1 หรือ 3.2",
+      "sec4": "4.1, 4.3 (หลายข้อคั่นด้วยจุลภาค)",
+      "sec5": "5.1 หรือ 5.2.1 หรือ 5.2.2 หรือ 5.2.3 หรือ 5.2.4 หรือ 5.3.1 หรือ 5.3.2",
+      "sec6": "6.1 หรือ 6.2",
+      "sec7": "7.1 หรือ 7.2 หรือ 7.3 หรือ 7.4 หรือ 7.5"
+    }
+  ]
+}
 
-ตอบเป็น JSON เท่านั้น` }
+ใส่เฉพาะคอลัมน์ที่มีเครื่องหมาย ข้ามคอลัมน์ว่าง` }
           ]
         }]
       })
     });
 
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
-    
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message || 'Claude API error');
+
     scanUpdateProg(2, '✅', 'AI อ่านข้อมูลสำเร็จ');
-    scanUpdateProg(3, '🔄', 'กำลังแปลงข้อมูล...', true);
+    scanUpdateProg(3, '⟳', 'กำลังแปลงข้อมูล...', true);
 
-    const text = data.content[0].text.trim().replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-    const parsed = JSON.parse(text);
+    const raw = data.content[0].text.trim()
+      .replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+    const parsed = JSON.parse(raw);
 
-    scanUpdateProg(3, '✅', 'แปลงข้อมูลสำเร็จ');
+    scanUpdateProg(3, '✅', `แปลงสำเร็จ — พบ ${(parsed.records||[]).length} รายการ`);
     scanSetStep(3);
 
     const formDate = parsed.date || new Date().toISOString().split('T')[0];
@@ -2102,33 +2125,46 @@ JSON format:
       id: Date.now() + Math.random(),
       date: formDate, callbackDate: formDate,
       incidentNum: String(r.incidentNum || ''),
-      reporterName: '', phone: '', incidentType: '', incidentDetail: '',
+      reporterName: '', phone: '',
+      incidentType: '', incidentDetail: '',
       callerName: '',
-      sec2: r.sec2 || null, sec3: r.sec3 || null, sec4: r.sec4 || null,
-      sec5: r.sec5 || null, sec6: r.sec6 || null, sec7: r.sec7 || null,
+      sec2: r.sec2 || null, sec3: r.sec3 || null,
+      sec4: r.sec4 || null, sec5: r.sec5 || null,
+      sec6: r.sec6 || null, sec7: r.sec7 || null,
       remark: ''
     }));
 
     scanRecordIdx = 0;
+    if (progCard) progCard.style.display = 'none';
+    if (resCard)  resCard.style.display  = 'block';
     scanRenderResult();
-    document.getElementById('scanProgCard').style.display = 'none';
-    document.getElementById('scanResultCard').style.display = 'block';
-    btn.disabled = false; btn.textContent = '🤖 วิเคราะห์แบบฟอร์มด้วย AI';
 
   } catch(err) {
-    console.error(err);
-    document.getElementById('scanProgCard').style.display = 'none';
+    console.error('Scan error:', err);
+    if (progCard) progCard.style.display = 'none';
     showToast('เกิดข้อผิดพลาด: ' + err.message, 'warn');
-    btn.disabled = false; btn.textContent = '🤖 วิเคราะห์แบบฟอร์มด้วย AI';
     scanSetStep(1);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🤖 วิเคราะห์แบบฟอร์มด้วย AI'; }
   }
+}
+
+function scanUpdateProg(num, icon, text, spin) {
+  const el = document.getElementById('sprog' + num);
+  if (!el) return;
+  el.style.opacity = '1';
+  const ic = spin ? '<span class="spinning">' + icon + '</span>' : icon;
+  el.innerHTML = `<span style="font-size:18px;width:24px;display:inline-block">${ic}</span><span>${text}</span>`;
 }
 
 function scanRenderResult() {
   const tabs = document.getElementById('scanRecordTabs');
-  tabs.innerHTML = scanRecords.map((r,i) =>
-    `<button class="record-tab ${i===scanRecordIdx?'active':''}" onclick="scanSwitchRecord(${i})">เหตุ #${r.incidentNum||(i+1)}</button>`
-  ).join('') + `<span style="font-size:12px;color:var(--text-dim);align-self:center;margin-left:6px">(${scanRecords.length} รายการ)</span>`;
+  if (!tabs) return;
+  tabs.innerHTML = scanRecords.map((r, i) =>
+    `<button class="record-tab ${i === scanRecordIdx ? 'active' : ''}"
+      onclick="scanSwitchRecord(${i})">เหตุ #${r.incidentNum || (i+1)}</button>`
+  ).join('') +
+  `<span style="font-size:12px;color:var(--text-dim);align-self:center;margin-left:6px">(${scanRecords.length} รายการ)</span>`;
   scanRenderForm(scanRecordIdx);
 }
 
@@ -2140,119 +2176,121 @@ function scanSwitchRecord(idx) {
 
 function scanRenderForm(idx) {
   const r = scanRecords[idx];
-  const opts = {
-    sec2: {'2.1':'โทรติด/ไม่รับสาย','2.2':'โทรติด/ไม่สะดวก','2.3':'โทรติด/ร่วมมือ'},
-    sec3: {'3.1':'โทรกลับแล้ว','3.2':'ไม่โทรกลับ'},
-    sec5: {'5.1':'ไปถึงเร็ว','5.2.1':'ไปช้า-ใกล้','5.2.2':'ไปช้า-ไกล','5.2.3':'ไปช้า-ว.13','5.2.4':'ไปช้า-ติดภารกิจ','5.3.1':'ไม่ไป-ติดต่อ','5.3.2':'ไม่ไป-ไม่สอบ'},
-    sec6: {'6.1':'มี','6.2':'ไม่มี'},
-    sec7: {'7.1':'พอใจ','7.2':'ดี','7.3':'ดีมาก','7.4':'ดีเยี่ยม','7.5':'ไม่พึงพอใจ'}
-  };
-  const sel = (id, op, val) => `<select id="${id}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Sarabun',sans-serif;font-size:14px;outline:none;">
-    <option value="">— เลือก —</option>
-    ${Object.entries(op).map(([v,l]) => `<option value="${v}" ${val===v?'selected':''}>${v} ${l}</option>`).join('')}
-  </select>`;
-  const inp = (id, val, ph='', type='text') => `<input type="${type}" id="${id}" value="${val||''}" placeholder="${ph}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Sarabun',sans-serif;font-size:14px;outline:none;">`;
+  if (!r) return;
+  const container = document.getElementById('scanRecordForm');
+  if (!container) return;
 
-  document.getElementById('scanRecordForm').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">ลำดับเหตุ</label>
-        ${inp('sf_num', r.incidentNum, '1-15', 'number')}
-      </div>
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">วันที่</label>
-        ${inp('sf_date', r.date, '', 'date')}
-      </div>
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">ชื่อผู้แจ้ง</label>
-        ${inp('sf_name', r.reporterName, 'ชื่อ-นามสกุล')}
-      </div>
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">เบอร์โทร</label>
-        ${inp('sf_phone', r.phone, '0XX-XXX-XXXX', 'tel')}
-      </div>
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">ผู้โทรกลับ</label>
-        <select id="sf_caller" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Sarabun',sans-serif;font-size:14px;outline:none;">
-          <option value="">— เลือก —</option>
-          ${['ร.ต.อ.เอกราช ปันวัง','ร.ต.อ.อนุสรณ์ ผลคำ','ร.ต.อ.คนึง ศรีกันทะ','ร.ต.อ.ธีรวัฒน์ ศรีนเรศพงษ์','ร.ต.อ.อภิวัชย์ วัชรการุณย์'].map(n => `<option ${r.callerName===n?'selected':''}>${n}</option>`).join('')}
-        </select>
-      </div>
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">2. การรับโทรศัพท์</label>
-        ${sel('sf_sec2', opts.sec2, r.sec2)}
-      </div>
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">3. โทรกลับหรือยัง</label>
-        ${sel('sf_sec3', opts.sec3, r.sec3)}
-      </div>
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">4. จนท.ศูนย์ (หลายข้อคั่น ,)</label>
-        ${inp('sf_sec4', r.sec4, '4.1, 4.3 ...')}
-      </div>
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">5. สายตรวจไปเกิดเหตุ</label>
-        ${sel('sf_sec5', opts.sec5, r.sec5)}
-      </div>
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">6. เหตุเกิดซ้ำ</label>
-        ${sel('sf_sec6', opts.sec6, r.sec6)}
-      </div>
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">7. ความพึงพอใจ</label>
-        ${sel('sf_sec7', opts.sec7, r.sec7)}
-      </div>
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
-        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">หมายเหตุ</label>
-        ${inp('sf_remark', r.remark, 'ระบุเพิ่มเติม...')}
-      </div>
-    </div>`;
+  const fieldStyle = 'width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#e8eaf0;border-radius:8px;padding:8px 10px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;';
+  const cellStyle  = 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;';
+  const lblStyle   = 'display:block;font-size:11px;color:#8899b0;margin-bottom:4px;font-weight:500;';
+
+  const inp = (id, val, ph='', type='text') =>
+    `<input type="${type}" id="${id}" value="${(val||'').toString().replace(/"/g,'&quot;')}"
+      placeholder="${ph}" style="${fieldStyle}">`;
+
+  const sel = (id, options, val) => {
+    const opts = Object.entries(options).map(([v,l]) =>
+      `<option value="${v}" ${val===v?'selected':''}>${v} — ${l}</option>`).join('');
+    return `<select id="${id}" style="${fieldStyle}">
+      <option value="">— เลือก —</option>${opts}</select>`;
+  };
+
+  container.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="${cellStyle}"><label style="${lblStyle}">ลำดับเหตุ (1-15)</label>${inp('sf_num',r.incidentNum,'1-15','number')}</div>
+    <div style="${cellStyle}"><label style="${lblStyle}">วันที่</label>${inp('sf_date',r.date,'','date')}</div>
+    <div style="${cellStyle}"><label style="${lblStyle}">ชื่อผู้แจ้ง</label>${inp('sf_name',r.reporterName,'ชื่อ-นามสกุล')}</div>
+    <div style="${cellStyle}"><label style="${lblStyle}">เบอร์โทร</label>${inp('sf_phone',r.phone,'0XX-XXX-XXXX','tel')}</div>
+    <div style="${cellStyle}"><label style="${lblStyle}">ผู้โทรกลับ</label>
+      <select id="sf_caller" style="${fieldStyle}">
+        <option value="">— เลือก —</option>
+        ${['ร.ต.อ.เอกราช ปันวัง','ร.ต.อ.อนุสรณ์ ผลคำ','ร.ต.อ.คนึง ศรีกันทะ',
+           'ร.ต.อ.ธีรวัฒน์ ศรีนเรศพงษ์','ร.ต.อ.อภิวัชย์ วัชรการุณย์']
+          .map(n => `<option ${r.callerName===n?'selected':''}>${n}</option>`).join('')}
+      </select>
+    </div>
+    <div style="${cellStyle}"><label style="${lblStyle}">2. การรับโทรศัพท์</label>
+      ${sel('sf_sec2',{'2.1':'ไม่รับสาย','2.2':'ไม่สะดวก','2.3':'ร่วมมือ'},r.sec2)}</div>
+    <div style="${cellStyle}"><label style="${lblStyle}">3. โทรกลับหรือยัง</label>
+      ${sel('sf_sec3',{'3.1':'โทรกลับแล้ว','3.2':'ไม่โทรกลับ'},r.sec3)}</div>
+    <div style="${cellStyle}"><label style="${lblStyle}">4. จนท.ศูนย์ (คั่นด้วย , ถ้าหลายข้อ)</label>
+      ${inp('sf_sec4',r.sec4,'4.1, 4.3 ...')}</div>
+    <div style="${cellStyle}"><label style="${lblStyle}">5. สายตรวจไปเกิดเหตุ</label>
+      ${sel('sf_sec5',{
+        '5.1':'ไปถึงเร็ว','5.2.1':'ไปช้า-ใกล้','5.2.2':'ไปช้า-ไกล',
+        '5.2.3':'ไปช้า-ว.13','5.2.4':'ไปช้า-ติดภารกิจ',
+        '5.3.1':'ไม่ไป-ติดต่อ','5.3.2':'ไม่ไป-ไม่สอบ'},r.sec5)}</div>
+    <div style="${cellStyle}"><label style="${lblStyle}">6. เหตุเกิดซ้ำ</label>
+      ${sel('sf_sec6',{'6.1':'มี','6.2':'ไม่มี'},r.sec6)}</div>
+    <div style="${cellStyle}"><label style="${lblStyle}">7. ความพึงพอใจ</label>
+      ${sel('sf_sec7',{'7.1':'พอใจ','7.2':'ดี','7.3':'ดีมาก','7.4':'ดีเยี่ยม','7.5':'ไม่พึงพอใจ'},r.sec7)}</div>
+    <div style="${cellStyle} grid-column:1/-1;"><label style="${lblStyle}">หมายเหตุ</label>
+      ${inp('sf_remark',r.remark,'ระบุเพิ่มเติม...')}</div>
+  </div>`;
 }
 
 function scanSaveForm() {
   if (!scanRecords.length) return;
   const r = scanRecords[scanRecordIdx];
   const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
-  r.incidentNum = g('sf_num');
-  r.date = g('sf_date'); r.callbackDate = g('sf_date');
-  r.reporterName = g('sf_name'); r.phone = g('sf_phone');
-  r.callerName = g('sf_caller');
-  r.sec2 = g('sf_sec2')||null; r.sec3 = g('sf_sec3')||null;
-  r.sec4 = g('sf_sec4')||null; r.sec5 = g('sf_sec5')||null;
-  r.sec6 = g('sf_sec6')||null; r.sec7 = g('sf_sec7')||null;
+  r.incidentNum  = g('sf_num');
+  r.date         = g('sf_date');
+  r.callbackDate = g('sf_date');
+  r.reporterName = g('sf_name');
+  r.phone        = g('sf_phone');
+  r.callerName   = g('sf_caller');
+  r.sec2  = g('sf_sec2')  || null;
+  r.sec3  = g('sf_sec3')  || null;
+  r.sec4  = g('sf_sec4')  || null;
+  r.sec5  = g('sf_sec5')  || null;
+  r.sec6  = g('sf_sec6')  || null;
+  r.sec7  = g('sf_sec7')  || null;
   r.remark = g('sf_remark');
 }
 
 async function scanSubmitAll() {
   scanSaveForm();
   const btn = document.getElementById('scanBtnSubmit');
-  btn.disabled = true; btn.textContent = '⏳ กำลังบันทึก...';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ กำลังบันทึก...'; }
   scanSetStep(4);
+
   let ok = 0, fail = 0;
   for (const rec of scanRecords) {
     rec.id = Date.now() + Math.random();
-    const sent = await sendToGAS(rec);
-    if (sent) ok++; else fail++;
+    try {
+      await sendToGAS(rec);
+      ok++;
+    } catch(e) {
+      fail++;
+      console.error('sendToGAS error:', e);
+    }
     await new Promise(r => setTimeout(r, 300));
   }
-  btn.disabled = false; btn.textContent = '💾 บันทึกทั้งหมดลง Google Sheet';
+
+  if (btn) { btn.disabled = false; btn.textContent = '💾 บันทึกทั้งหมดลง Google Sheet'; }
+
   if (fail === 0) showToast('✅ บันทึกสำเร็จ ' + ok + ' รายการ', 'success');
   else showToast('⚠️ สำเร็จ ' + ok + ' / ล้มเหลว ' + fail + ' รายการ', 'warn');
 }
 
 function scanResetUpload() {
   scanFile = null;
-  document.getElementById('scanFileInput').value = '';
-  document.getElementById('scanUploadZone').style.display = '';
-  document.getElementById('scanPreviewWrap').style.display = 'none';
-  document.getElementById('scanBtnAnalyze').style.display = 'none';
+  const inp = document.getElementById('scanFileInput');
+  if (inp) inp.value = '';
+  const zone = document.getElementById('scanUploadZone');
+  const prev = document.getElementById('scanPreviewWrap');
+  const btn  = document.getElementById('scanBtnAnalyze');
+  if (zone) zone.style.display = '';
+  if (prev) prev.style.display = 'none';
+  if (btn)  btn.style.display  = 'none';
 }
 
 function scanResetAll() {
   scanResetUpload();
   scanRecords = []; scanRecordIdx = 0;
-  document.getElementById('scanProgCard').style.display = 'none';
-  document.getElementById('scanResultCard').style.display = 'none';
+  const prog = document.getElementById('scanProgCard');
+  const res  = document.getElementById('scanResultCard');
+  if (prog) prog.style.display = 'none';
+  if (res)  res.style.display  = 'none';
   scanSetStep(1);
 }
 
