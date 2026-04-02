@@ -681,7 +681,7 @@
       <div class="page-title">บันทึก<span>การโทรกลับ</span></div>
       <div style="font-size:13px;color:var(--text-dim);margin-top:4px">ข้อมูลการโทรกลับผู้แจ้งเหตุ ของศูนย์ 191 ภ.จว.น่าน</div>
     </div>
-    <div class="incident-id" id="incidentIdDisplay">เหตุ #—</div>
+    <div class="incident-id" id="incidentIdDisplay">"เหตุ" #—</div>
   </div>
 
   <div class="form-grid">
@@ -1046,7 +1046,7 @@
         <input type="tel" id="e_phone" placeholder="0XX-XXX-XXXX">
       </div>
       <div class="edit-field">
-        <label>ประเภทเหตุ</label>
+        <label>ประเภท</label>
         <select id="e_incidentType">
           <option value="">— เลือกประเภทเหตุ —</option>
           <option>คดีอาญา / โจรกรรม</option>
@@ -1216,7 +1216,7 @@ document.getElementById('f_callbackDate').value = new Date().toISOString().split
 
 function updateIncidentId() {
   const n = document.getElementById('f_incidentNum').value;
-  document.getElementById('incidentIdDisplay').textContent = n ? `เหตุ #${n}` : 'เหตุ #—';
+  document.getElementById('incidentIdDisplay').textContent = n ? `"เหตุ" #${n}` : '"เหตุ" #—';
 }
 
 // ===== VIEW SWITCH =====
@@ -1331,7 +1331,7 @@ function resetForm() {
   document.getElementById('f_incidentDetail').value = '';
   document.getElementById('f_callerName').value = '';
   document.getElementById('f_remark').value = '';
-  document.getElementById('incidentIdDisplay').textContent = 'เหตุ #—';
+  document.getElementById('incidentIdDisplay').textContent = '"เหตุ" #—';
   document.querySelectorAll('.radio-item').forEach(el => el.classList.remove('selected'));
   document.querySelectorAll('.check-item').forEach(el => el.classList.remove('selected'));
 }
@@ -1537,7 +1537,7 @@ document.getElementById('f_callbackDate').value = new Date().toISOString().split
 
 function updateIncidentId() {
   const n = document.getElementById('f_incidentNum').value;
-  document.getElementById('incidentIdDisplay').textContent = n ? `เหตุ #${n}` : 'เหตุ #—';
+  document.getElementById('incidentIdDisplay').textContent = n ? `"เหตุ" #${n}` : '"เหตุ" #—';
 }
 
 // ===== VIEW SWITCH =====
@@ -1622,7 +1622,7 @@ function resetForm() {
   if (otherEl) { otherEl.value = ''; otherEl.classList.remove('show'); }
   const callerEl = document.getElementById('f_callerName');
   if (callerEl) callerEl.value = '';
-  document.getElementById('incidentIdDisplay').textContent = 'เหตุ #—';
+  document.getElementById('incidentIdDisplay').textContent = '"เหตุ" #—';
   document.querySelectorAll('.radio-item').forEach(el => el.classList.remove('selected'));
 }
 
@@ -2131,7 +2131,7 @@ async function scanAnalyze() {
 function scanRenderResult() {
   const tabs=document.getElementById('scanRecordTabs');
   if(tabs) tabs.innerHTML=scanRecords.map((r,i)=>
-    `<button class="record-tab ${i===scanRecordIdx?'active':''}" onclick="scanSwitchRecord(${i})">เหตุ #${r.incidentNum||(i+1)}</button>`
+    `<button class="record-tab ${i===scanRecordIdx?'active':''}" onclick="scanSwitchRecord(${i})">"เหตุ" #${r.incidentNum||(i+1)}</button>`
   ).join('')+`<span style="font-size:12px;color:var(--text-dim);align-self:center;margin-left:6px">(${scanRecords.length} รายการ)</span>`;
   scanRenderForm(scanRecordIdx);
 }
