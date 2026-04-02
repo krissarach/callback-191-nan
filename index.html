@@ -517,6 +517,7 @@
     background-size: 48px 48px;
     pointer-events: none;
     animation: gridMove 20s linear infinite;
+    z-index: 0;
   }
   @keyframes gridMove { 0% { transform: translateY(0); } 100% { transform: translateY(48px); } }
   .lw { position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 1.5rem; animation: fadeUp 0.5s cubic-bezier(.34,1.56,.64,1) both; }
@@ -1439,9 +1440,14 @@ const firebaseConfig = {
 };
 
 // Firebase SDK (compat version — ใช้ได้ใน HTML ธรรมดา)
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const recordsRef = db.ref('records');
+let db = null, recordsRef = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  recordsRef = db.ref('records');
+} catch(e) {
+  console.warn('Firebase init failed (ทำงาน offline mode):', e.message);
+}
 
 // ===== DATA STORE =====
 let records = [];
@@ -1449,6 +1455,14 @@ let formState = {};
 
 // ===== REALTIME LISTENER — โหลดและ sync ข้อมูลอัตโนมัติ =====
 function initFirebaseListener() {
+  if (!recordsRef) {
+    console.warn('Firebase ไม่พร้อม — ใช้งานแบบ offline');
+    const syncBadge = document.getElementById('syncBadge');
+    const syncText = document.getElementById('syncText');
+    if (syncBadge) syncBadge.className = 'sync-badge offline';
+    if (syncText) syncText.textContent = 'Offline Mode';
+    return;
+  }
   recordsRef.on('value', (snapshot) => {
     const data = snapshot.val();
     if (data) {
@@ -1487,6 +1501,7 @@ function setSyncStatus(online) {
 
 // ===== SEND TO FIREBASE =====
 async function sendToFirebase(record) {
+  if (!recordsRef) { showToast('⚠️ Firebase ไม่พร้อม — ไม่สามารถบันทึกออนไลน์ได้','warn'); return false; }
   try {
     await recordsRef.push(record);
     console.log('✅ บันทึกลง Firebase สำเร็จ');
