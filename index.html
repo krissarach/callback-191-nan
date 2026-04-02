@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
   :root {
     --navy: #0a1628;
@@ -663,11 +663,11 @@
         <div class="l-fw">
           <span class="l-icon">🔒</span>
           <input type="password" id="l_pass" placeholder="กรอกรหัสผ่าน" autocomplete="current-password">
-          <button class="l-eye" type="button" onclick="ltogglePass()" id="l_eyeBtn">👁️</button>
+          <button class="l-eye" type="button" id="l_eyeBtn">👁️</button>
         </div>
       </div>
       <div class="l-err" id="l_err">❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>
-      <button class="l-btn" id="l_btn" onclick="lDoLogin()">
+      <button class="l-btn" id="l_btn">
         <span class="l-btext">🔓 เข้าสู่ระบบ</span>
         <div class="l-spinner"></div>
       </button>
@@ -1432,19 +1432,18 @@ function printDashboard() {
 const firebaseConfig = {
   apiKey: "AIzaSyB2quwJJS7UeZo6e0xT2uVuAtRp38fPs2w",
   authDomain: "callback-191-nan-29caa.firebaseapp.com",
-  databaseURL: "https://callback-191-nan-29caa-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "callback-191-nan-29caa",
   storageBucket: "callback-191-nan-29caa.firebasestorage.app",
   messagingSenderId: "636869786332",
   appId: "1:636869786332:web:694e35b5810f2f37539219"
 };
 
-// Firebase SDK (compat version — ใช้ได้ใน HTML ธรรมดา)
+// Firebase SDK (compat version — Firestore)
 let db = null, recordsRef = null;
 try {
   firebase.initializeApp(firebaseConfig);
-  db = firebase.database();
-  recordsRef = db.ref('records');
+  db = firebase.firestore();
+  recordsRef = db.collection('records');
 } catch(e) {
   console.warn('Firebase init failed (ทำงาน offline mode):', e.message);
 }
@@ -1463,32 +1462,22 @@ function initFirebaseListener() {
     if (syncText) syncText.textContent = 'Offline Mode';
     return;
   }
-  recordsRef.on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      records = Object.entries(data).map(([key, val]) => ({ ...val, _fbKey: key }));
-      records.sort((a, b) => (b.id || 0) - (a.id || 0));
-    } else {
-      records = [];
-    }
-    localStorage.setItem('cb191_records', JSON.stringify(records));
-    // Re-render dashboard if open
-    if (document.getElementById('view-dashboard').classList.contains('active')) {
-      renderDashboard();
-    }
-    setSyncStatus(true);
-    console.log('🔥 Firebase sync:', records.length, 'records');
-  }, (err) => {
-    console.error('Firebase error:', err);
-    setSyncStatus(false);
-    // Fallback to localStorage
-    records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
-  });
-
-  // Connection state
-  db.ref('.info/connected').on('value', (snap) => {
-    setSyncStatus(snap.val() === true);
-  });
+  // Firestore real-time listener
+  recordsRef
+    .orderBy('timestamp', 'desc')
+    .onSnapshot((snapshot) => {
+      records = snapshot.docs.map(doc => ({ ...doc.data(), _fbKey: doc.id }));
+      localStorage.setItem('cb191_records', JSON.stringify(records));
+      if (document.getElementById('view-dashboard').classList.contains('active')) {
+        renderDashboard();
+      }
+      setSyncStatus(true);
+      console.log('🔥 Firestore sync:', records.length, 'records');
+    }, (err) => {
+      console.error('Firestore error:', err);
+      setSyncStatus(false);
+      records = JSON.parse(localStorage.getItem('cb191_records') || '[]');
+    });
 }
 
 function setSyncStatus(online) {
@@ -1503,35 +1492,39 @@ function setSyncStatus(online) {
 async function sendToFirebase(record) {
   if (!recordsRef) { showToast('⚠️ Firebase ไม่พร้อม — ไม่สามารถบันทึกออนไลน์ได้','warn'); return false; }
   try {
-    await recordsRef.push(record);
-    console.log('✅ บันทึกลง Firebase สำเร็จ');
+    await recordsRef.add({
+      ...record,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    console.log('✅ บันทึกลง Firestore สำเร็จ');
     return true;
   } catch (err) {
-    console.error('Firebase write error:', err);
+    console.error('Firestore write error:', err);
     return false;
   }
 }
 
 // ===== UPDATE RECORD IN FIREBASE =====
 async function updateInFirebase(record) {
-  if (!record._fbKey) return false;
+  if (!record._fbKey || !recordsRef) return false;
   try {
     const { _fbKey, ...data } = record;
-    await recordsRef.child(_fbKey).update(data);
+    await recordsRef.doc(_fbKey).update(data);
     return true;
   } catch (err) {
-    console.error('Firebase update error:', err);
+    console.error('Firestore update error:', err);
     return false;
   }
 }
 
 // ===== DELETE FROM FIREBASE =====
 async function deleteFromFirebase(fbKey) {
+  if (!recordsRef) return false;
   try {
-    await recordsRef.child(fbKey).remove();
+    await recordsRef.doc(fbKey).delete();
     return true;
   } catch (err) {
-    console.error('Firebase delete error:', err);
+    console.error('Firestore delete error:', err);
     return false;
   }
 }
@@ -1983,12 +1976,21 @@ async function deleteRecord(id, fbKey) {
 
 async function deleteAll() {
   if (!confirm(`ยืนยันลบข้อมูลทั้งหมด ${records.length} รายการ?`)) return;
-  // Delete all from Firebase
-  await recordsRef.remove();
-  records=[];
-  localStorage.setItem('cb191_records','[]');
-  closeDeleteModal();
-  showToast('🗑️ ลบข้อมูลทั้งหมดแล้ว','warn');
+  if (!recordsRef) { records=[]; localStorage.setItem('cb191_records','[]'); closeDeleteModal(); return; }
+  try {
+    // Firestore: ต้องลบทีละ document (batch)
+    const snapshot = await recordsRef.get();
+    const batch = db.batch();
+    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    records=[];
+    localStorage.setItem('cb191_records','[]');
+    closeDeleteModal();
+    showToast('🗑️ ลบข้อมูลทั้งหมดแล้ว','warn');
+  } catch(err) {
+    console.error('Firestore batch delete error:', err);
+    showToast('❌ ลบไม่สำเร็จ: '+err.message,'warn');
+  }
 }
 
 document.getElementById('deleteModal').addEventListener('click',function(e){if(e.target===this)closeDeleteModal();});
@@ -2277,15 +2279,25 @@ function lShowErr(msg){
   void err.offsetWidth;
   err.classList.add('show');
 }
-document.addEventListener('keydown',e=>{
-  const overlay=document.getElementById('loginOverlay');
-  if(e.key==='Enter'&&overlay&&overlay.style.display!=='none')lDoLogin();
-});
+// keydown Enter — moved to DOMContentLoaded
 
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded',()=>{
   lCheckSession();
   setPeriod('day');
+
+  // Fix: ผูก event ผ่าน addEventListener แทน onclick attribute
+  const loginBtn = document.getElementById('l_btn');
+  if (loginBtn) loginBtn.addEventListener('click', lDoLogin);
+
+  const eyeBtn = document.getElementById('l_eyeBtn');
+  if (eyeBtn) eyeBtn.addEventListener('click', ltogglePass);
+
+  // Enter key ใน login overlay
+  document.addEventListener('keydown', e => {
+    const overlay = document.getElementById('loginOverlay');
+    if (e.key === 'Enter' && overlay && overlay.style.display !== 'none') lDoLogin();
+  });
 });
 
 </script>
