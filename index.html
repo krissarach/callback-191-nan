@@ -2148,10 +2148,13 @@ async function scanAnalyze() {
   }
 }
 function scanRenderResult() {
-  const tabs=document.getElementById('scanRecordTabs');
-  if(tabs) tabs.innerHTML=scanRecords.map((r,i)=>
-    `<button class="record-tab ${i===scanRecordIdx?'active':''}" onclick="scanSwitchRecord(${i})">เหตุ #${r.incidentNum||(i+1)}</button>`
-  ).join('')+`<span style="font-size:12px;color:var(--text-dim);align-self:center;margin-left:6px">(${scanRecords.length} รายการ)</span>`;
+  const tabs = document.getElementById('scanRecordTabs');
+  if (tabs && scanRecords) {
+    tabs.innerHTML = scanRecords.map((r, i) =>
+      // สังเกตเครื่องหมาย ` ที่เปิดหน้า <button และปิดหลัง </button>
+      `<button class="record-tab ${i === scanRecordIdx ? 'active' : ''}" onclick="scanSwitchRecord(${i})">เหตุ #${r.incidentNum || (i + 1)}</button>`
+    ).join('') + `<span style="font-size:12px;color:var(--text-dim);align-self:center;margin-left:6px">(${scanRecords.length} รายการ)</span>`;
+  }
   scanRenderForm(scanRecordIdx);
 }
 function scanSwitchRecord(idx){scanSaveForm();scanRecordIdx=idx;scanRenderResult();}
